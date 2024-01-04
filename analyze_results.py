@@ -1,9 +1,46 @@
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
+from io import BytesIO
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+
+def generate_bar_graph(data, title, xlabel, ylabel, y_min=0):
+    """
+    Generate a bar graph from the given data.
+
+    :param data: Data to be plotted in the bar graph.
+    :param title: Title of the graph.
+    :param xlabel: Label for the x-axis.
+    :param ylabel: Label for the y-axis.
+    :param y_min: Minimum value for the y-axis.
+    :return: BytesIO object containing the image data of the plot.
+    """
+    plt.figure(figsize=(6, 4))
+    data.plot(kind='bar')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xticks(rotation=45, ha='right')
+    plt.ylim(bottom=y_min)
+    plt.tight_layout()
+    img_data = BytesIO()
+    plt.savefig(img_data, format='png')
+    plt.close()
+    img_data.seek(0)
+    return img_data
+
+def add_plot_to_pdf(elements, img_data):
+    """
+    Add a plot to the PDF document elements.
+
+    :param elements: List of elements to which the plot will be added.
+    :param img_data: BytesIO object containing the image data of the plot.
+    """
+    img = Image(img_data)
+    elements.append(img)
 
 def analyze_csv_data(df, run_index):
     """
@@ -66,19 +103,27 @@ def generate_pdf_report(df, file_path, prompt_name):
     """
     doc = SimpleDocTemplate(file_path, pagesize=letter)
     elements, styleSheet = [], getSampleStyleSheet()
+
     elements.append(Paragraph(f"<b>Prompt {prompt_name} Analysis Report</b>", styleSheet['Title']))
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph("<b>Overall Statistics</b>", styleSheet['Heading2']))
+
+    elements.append(Paragraph("<b>Overall Analysis</b>", styleSheet['Heading1']))
     elements.append(Spacer(1, 12))
 
     overall_stats = calculate_overall_stats(df)
     create_tables_for_analysis(overall_stats, elements, styleSheet, overall=True)
 
+    elements.append(PageBreak())
+    elements.append(Paragraph("<b>Individual Run Analysis</b>", styleSheet['Heading1']))
+    elements.append(Spacer(1, 12))
+
     for run_index in df['Run Index'].unique():
-        elements.append(PageBreak() if run_index > 0 else Spacer(1, 12))
         elements.append(Paragraph(f"<b>Run {run_index}</b>", styleSheet['Heading2']))
         analysis_results = analyze_csv_data(df, run_index)
         create_tables_for_analysis(analysis_results, elements, styleSheet)
+        elements.append(Spacer(1, 12))
+        if run_index < df['Run Index'].max():
+            elements.append(PageBreak())
 
     doc.build(elements)
 
@@ -111,6 +156,22 @@ def create_tables_for_analysis(analysis_results, elements, styleSheet, overall=F
         create_table([["Delta"]] + [[delta] for delta in analysis_results['deltas_passed_in_all_runs']], "Deltas Passed in All Runs")
         create_table([["Delta"]] + [[delta] for delta in analysis_results['deltas_failed_in_all_runs']], "Deltas Failed in All Runs")
         create_table([["Error Type", "Count"]] + [[et, c] for et, c in analysis_results['error_type_counts_overall'].items()], "Error Type Counts (Overall)")
+
+        # Adding the Delta Analysis (Overall) table
+        delta_data = [["Delta", "Pass", "Fail", "Pass Ratio"]]
+        for delta, row in analysis_results['delta_analysis_overall'].iterrows():
+            total = row['Pass'] + row['Fail']
+            pass_ratio = row['Pass'] / total if total > 0 else 0
+            delta_data.append([delta, row['Pass'], row['Fail'], f"{pass_ratio:.2f}"])
+        create_table(delta_data, "Delta Analysis (Overall)")
+
+        # Generating and adding the bar graphs
+        error_graph_data = generate_bar_graph(analysis_results['error_type_counts_overall'], "Error Type Counts", "Error Types", "Counts")
+        add_plot_to_pdf(elements, error_graph_data)
+
+        delta_graph_data = generate_bar_graph(analysis_results['delta_analysis_overall']['Pass'], "Delta Analysis - Pass Count", "Deltas", "Pass Count")
+        add_plot_to_pdf(elements, delta_graph_data)
+
     else:
         create_table([["Statistic", "Count"], ["Total Passes", analysis_results['total_passes']], ["Total Fails", analysis_results['total_fails']]], "Total Passes and Fails")
         create_table([["Error Type", "Count"]] + [[et, c] for et, c in analysis_results['error_type_counts'].items()], "Error Type Counts")
