@@ -56,23 +56,6 @@ print("Running llm tests...")
 for prompt_number in prompt_numbers:
     llm.run_llm_tests(args_dict['model'], prompt_number, args_dict['num_runs'], args_dict['test_type'], df)
 
-# Save the original stdout
-original_stdout = sys.stdout
-
-# Redirect stdout to a file, run analysis, then reset stdout
-print("Running individual analysis...")
-with open("generated_code_files/individual.txt", "w") as f:
-    sys.stdout = f
-    ar.run_analysis('individual')
-
-# Reset stdout to the original value
-sys.stdout = original_stdout
-
-# Repeat for overall analysis
-print("Running overall analysis...")
-with open("generated_code_files/overall.txt", "w") as f:
-    sys.stdout = f
-    ar.run_analysis('overall')
-
-# Reset stdout again
-sys.stdout = original_stdout
+# run analysis
+print("Running analysis...")
+ar.run_analysis()

@@ -84,35 +84,37 @@ def process_csv_in_folder(folder_path, perform_individual_analysis):
         print(f"No CSV file found in {folder_path}.")
         return None
 
-def main():
-    perform_overall_analysis = False
-    perform_individual_analysis = False
-    
-    if args_dict['type'] == 'overall':
-        perform_overall_analysis = True
-    else:
-        perform_individual_analysis = True
-
+def run_analysis():
     base_folder_path = 'generated_code_files'
     all_dataframes = []
-    for root, dirs, files in os.walk(base_folder_path):
-        for dir_name in dirs:
-            if dir_name.startswith('prompt_'):
-                full_path = os.path.join(root, dir_name)
-                df = process_csv_in_folder(full_path, perform_individual_analysis)
-                if df is not None:
-                    all_dataframes.append(df)
+    csv_count = 0
 
-    if perform_overall_analysis and all_dataframes:
+    for root, dirs, files in os.walk(base_folder_path):
+        for file_name in files:
+            if file_name.endswith('.csv'):
+                csv_count += 1
+                full_path = os.path.join(root, file_name)
+                df = pd.read_csv(full_path)
+                if csv_count == 1:
+                    # Perform individual analysis if only one CSV file
+                    analysis_results = analyze_csv_data(df)
+                    formatted_results = format_analysis_results(analysis_results)
+                    print(f"Processing CSV file: {full_path}")
+                    print(formatted_results)
+                all_dataframes.append(df)
+
+    if csv_count > 1:
+        print("Performing individual analysis for each CSV file...")
+        for df in all_dataframes:
+            analysis_results = analyze_csv_data(df)
+            formatted_results = format_analysis_results(analysis_results)
+            print(formatted_results)
+
         print("Performing overall analysis across all CSV files...")
         overall_results = overall_analysis(all_dataframes)
         print(overall_results)
-    elif not all_dataframes:
+    elif csv_count == 0:
         print("No CSV files were found for analysis.")
 
-def run_analysis(type):
-    args_dict['type'] = type
-    main()
-
 if __name__ == "__main__":
-    main()
+    pass
