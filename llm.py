@@ -93,11 +93,26 @@ def run_test_cases_for_file(file_path, test_list):
         spec = importlib.util.spec_from_file_location("module.name", file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return ('Pass', None) if run_test_cases(module, test_list) else ('Fail', 'Semantic')
+        if run_test_cases(module, test_list):
+            return ('Pass', None)
+        else:
+            # If the test cases run but fail, it's a semantic error
+            return ('Fail', 'Semantic Error (Test Case)')
     except SyntaxError:
-        return ('Fail', 'Syntax')
-    except Exception:
-        return ('Fail', 'Other Exception')
+        return ('Fail', 'Syntax Error')
+    except AssertionError:
+        # If an assertion fails, it's considered a semantic error
+        return ('Fail', 'Semantic Error (Assertion)')
+    except timeout_decorator.TimeoutError:
+        return ('Fail', 'Timeout')
+    except MemoryError:
+        return ('Fail', 'Resource Error')
+    except ImportError:
+        return ('Fail', 'Dependency Error')
+    except EnvironmentError:
+        return ('Fail', 'Environment Error')
+    except Exception as e:
+        return ('Fail', f'Runtime Error - {e.__class__.__name__}')
 
 def main(df):
     """
