@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import importlib.util
+import itertools
 import timeout_decorator
 import models
 
@@ -9,7 +10,8 @@ args_dict = {
     'model': '',
     'prompt': '',
     'num_runs': '',
-    'test_type': ''
+    'test_type': '',
+    'delta_method': ''  # New argument for specifying delta generation method
 }
 
 def extract_function_header(code):
@@ -125,14 +127,39 @@ def main(df):
 
     prompt_index = int(args_dict['prompt']) if args_dict['prompt'] else 0
     num_runs = int(args_dict['num_runs']) if args_dict['num_runs'] else 1
-
     output_directory = f'generated_code_files/prompt_{prompt_index}'
     os.makedirs(output_directory, exist_ok=True)
 
-    docstring, code, function_header = df.iloc[prompt_index][['text', 'code', 'function_header']]
+    # Extracting and ensuring the data types
+    docstring = str(df.iloc[prompt_index]['text'])
+    code = str(df.iloc[prompt_index]['code'])
+    function_header = str(extract_function_header(code))
     test_list = df.iloc[prompt_index]['new_test_list'] if args_dict['test_type'] == 'new' else df.iloc[prompt_index]['test_list']
+    test_list = '\n'.join(test_list) if isinstance(test_list, list) else str(test_list)
 
-    deltas = [f"{docstring}\n{function_header}\n{test_list}", docstring, f"{docstring}\n{function_header}", function_header, f"{function_header}\n{test_list}", test_list]
+    # Define delta components as a dictionary
+    delta_components = {
+        'docstring': docstring,
+        'function_header': function_header,
+        'test_list': test_list
+    }
+
+    # Choose between permutations and combinations
+    delta_method = args_dict.get('delta_method', 'permutations')
+    delta_generator = itertools.permutations if delta_method == 'permutations' else itertools.combinations
+
+    # Generate all permutations or combinations of the deltas
+    delta_elements = ['docstring', 'function_header', 'test_list']
+    all_deltas = []
+    for r in range(1, len(delta_elements) + 1):
+        all_deltas.extend(delta_generator(delta_elements, r))
+
+    # Generate deltas based on chosen method
+    deltas = []
+    for delta in all_deltas:
+        deltas.append('\n'.join([delta_components[element] for element in delta]))
+
+    # Initialize results dictionary
     results = {f'delta_{i}': [] for i in range(len(deltas))}
 
     for run_index in range(num_runs):
@@ -144,7 +171,7 @@ def main(df):
             file_name = f"{output_directory}/delta_{run_index}_{i}.py"
             with open(file_name, 'w') as file:
                 file.write(generated_code)
-            print(f"Running test(s) for delta {i + 1} of {len(deltas)}")
+            print(f"Running tests for delta {i + 1} of {len(deltas)}")
             results[f'delta_{i}'].append(run_test_cases_for_file(file_name, test_list))
 
     all_results = []
@@ -168,7 +195,7 @@ def main(df):
     results_df.to_csv(csv_filename, index=False)
     print(f"CSV file created: {csv_filename}")
 
-def run_llm_tests(model, prompt_num, num_runs, test_type, df):
+def run_llm_tests(model, prompt_num, num_runs, test_type, delta_method, df):
     """
     Run the Language Learning Model (LLM) tests.
 
@@ -176,9 +203,10 @@ def run_llm_tests(model, prompt_num, num_runs, test_type, df):
     :param prompt_num: The prompt number to test.
     :param num_runs: Number of times to run the tests.
     :param test_type: The type of test to run ('new' or other).
+    :param delta_method: The method for generating deltas ('permutations' or 'combinations').
     :param df: A DataFrame containing code and test cases.
     """
-    args_dict.update({'model': model, 'prompt': prompt_num, 'num_runs': num_runs, 'test_type': test_type})
+    args_dict.update({'model': model, 'prompt': prompt_num, 'num_runs': num_runs, 'test_type': test_type, 'delta_method': delta_method})
     main(df)
 
 if __name__ == '__main__':

@@ -14,13 +14,15 @@ parser.add_argument("-m", "--model", help="OpenAI GPT API model name")
 parser.add_argument("-p", "--num_prompts", help="Number of prompts to test")
 parser.add_argument("-n", "--num_runs", help="Number of runs for prompt")
 parser.add_argument("-t", "--test_type", help="Type of test to run: new or original")
+parser.add_argument("-d", "--delta_method", help="Method for generating delta: permutations or combinations")
 args = parser.parse_args()
 
 args_dict = {
     'model': args.model,
     'num_prompts': int(args.num_prompts),
     'num_runs': int(args.num_runs),
-    'test_type': args.test_type
+    'test_type': args.test_type,
+    'delta_method': args.delta_method
 }
 
 # Original JSON file
@@ -54,7 +56,7 @@ print('Prompt numbers to test:', prompt_numbers)
 # Call the function from llm.py with the necessary arguments
 print("Running llm tests...")
 for prompt_number in prompt_numbers:
-    llm.run_llm_tests(args_dict['model'], prompt_number, args_dict['num_runs'], args_dict['test_type'], df)
+    llm.run_llm_tests(args_dict['model'], prompt_number, args_dict['num_runs'], args_dict['test_type'], args_dict['delta_method'], df)
 
 # run analysis
 print("Running analysis...")
