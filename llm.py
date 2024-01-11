@@ -154,10 +154,13 @@ def main(df):
     for r in range(1, len(delta_elements) + 1):
         all_deltas.extend(delta_generator(delta_elements, r))
 
-    # Generate deltas based on chosen method
     deltas = []
+    delta_components_info = {}  # To store components information
     for delta in all_deltas:
-        deltas.append('\n'.join([delta_components[element] for element in delta]))
+        delta_key = '\n'.join([delta_components[element] for element in delta])
+        deltas.append(delta_key)
+        delta_components_info[delta_key] = ', '.join(delta)  # Store the components for each delta
+
 
     # Initialize results dictionary
     results = {f'delta_{i}': [] for i in range(len(deltas))}
@@ -172,11 +175,11 @@ def main(df):
             with open(file_name, 'w') as file:
                 file.write(generated_code)
             print(f"Running tests for delta {i + 1} of {len(deltas)}")
-            results[f'delta_{i}'].append(run_test_cases_for_file(file_name, test_list))
+            results[f'delta_{i}'].append(run_test_cases_for_file(file_name, test_list) + (delta_components_info[delta],))
 
     all_results = []
     for delta_key, test_results in results.items():
-        for run_index, (test_result, error_type) in enumerate(test_results):
+        for run_index, (test_result, error_type, components) in enumerate(test_results):
             file_name = f"{output_directory}/delta_{run_index}_{delta_key.split('_')[1]}.py"
             with open(file_name, 'r') as file:
                 code = file.read()
@@ -185,7 +188,8 @@ def main(df):
                 'Pass/Fail': 'Pass' if test_result == 'Pass' else 'Fail',
                 'Error Type': error_type,
                 'Run Index': run_index + 1,
-                'Code': code
+                'Code': code,
+                'Components': components  # New field for components
             })
 
     results_df = pd.DataFrame(all_results)
