@@ -7,6 +7,30 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 
+def create_deltas_key_table(df, elements, styleSheet):
+    """
+    Create a table for the Deltas Key section in the PDF document.
+
+    :param df: DataFrame containing the test results.
+    :param elements: List of elements to which the table will be added.
+    :param styleSheet: StyleSheet used for formatting the report.
+    """
+    deltas_components = df[['Delta', 'Components']].drop_duplicates().sort_values(by='Delta')
+    data = [['Delta', 'Components']] + deltas_components.values.tolist()
+
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+
+    elements.append(table)
+
 def generate_deltas_tree(df):
     """
     Generate a three-level binary tree image with corrected edges and pass ratios for each delta.
@@ -182,6 +206,10 @@ def generate_pdf_report(df, file_path, prompt_name):
     elements.append(Paragraph(f"<b>Prompt {prompt_name} Analysis Report</b>", styleSheet['Title']))
     elements.append(Spacer(1, 12))
 
+    # Create Deltas Key table
+    create_deltas_key_table(df, elements, styleSheet)
+
+    elements.append(PageBreak())
     elements.append(Paragraph("<b>Overall Analysis</b>", styleSheet['Heading1']))
     elements.append(Spacer(1, 12))
 
