@@ -1,10 +1,86 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import networkx as nx
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+
+def generate_deltas_tree(df):
+    """
+    Generate a three-level binary tree image with corrected edges and pass ratios for each delta.
+    """
+    def parse_components(components_str):
+        """Parse the components string into a list of individual components."""
+        return components_str.split(", ")
+
+    # Identifying deltas for each component and combination of components
+    components_set = set()
+    for components in df['Components']:
+        components_set.update(parse_components(components))
+    
+    component_to_deltas = {component: [] for component in components_set}
+    for index, row in df.iterrows():
+        for component in parse_components(row['Components']):
+            component_to_deltas[component].append(row['Delta'])
+
+    # Finding the root, level 2, and level 3 nodes
+    root_node = None
+    level_2_nodes = {}
+    level_3_nodes = []
+
+    for delta, components in df.set_index('Delta')['Components'].items():
+        parsed_components = parse_components(components)
+        if len(parsed_components) == len(components_set):
+            root_node = delta
+        elif len(parsed_components) == 2:
+            level_2_nodes[delta] = parsed_components
+        elif len(parsed_components) == 1:
+            level_3_nodes.append(delta)
+
+    # Calculate pass ratios for each delta
+    delta_pass_ratios = df.groupby('Delta')['Pass/Fail'].value_counts().unstack(fill_value=0)
+
+    # Ensure both 'Pass' and 'Fail' columns exist
+    if 'Pass' not in delta_pass_ratios.columns:
+        delta_pass_ratios['Pass'] = 0
+    if 'Fail' not in delta_pass_ratios.columns:
+        delta_pass_ratios['Fail'] = 0
+
+    delta_pass_ratios['Pass Ratio'] = delta_pass_ratios['Pass'] / (delta_pass_ratios['Pass'] + delta_pass_ratios['Fail'])
+
+    # Create the graph
+    G = nx.DiGraph()
+
+    # Adding nodes with pass ratios and edges based on dynamically identified levels
+    G.add_node(f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}")
+    for node, components in level_2_nodes.items():
+        node_label = f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}"
+        G.add_node(node_label)
+        G.add_edge(f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}", node_label)
+        for component in components:
+            for delta in component_to_deltas[component]:
+                if delta in level_3_nodes:
+                    child_label = f"{delta}\n{delta_pass_ratios.loc[delta, 'Pass Ratio']:.2f}"
+                    G.add_node(child_label)
+                    G.add_edge(node_label, child_label)
+
+    # Positioning nodes
+    pos = {f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}": (1, 2)}
+    pos.update({f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}": (idx, 1) for idx, node in enumerate(level_2_nodes)})
+    pos.update({f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}": (idx, 0) for idx, node in enumerate(level_3_nodes)})
+
+    # Drawing the tree
+    plt.figure(figsize=(6, 4))
+    nx.draw(G, pos, with_labels=True, node_size=3500, node_color='skyblue', font_size=10, edge_color='black', arrowsize=20)
+
+    # Saving the image
+    img_data = BytesIO()
+    plt.savefig(img_data, format='png', bbox_inches='tight')
+    plt.close()
+    img_data.seek(0)
+    return img_data
 
 def generate_bar_graph(data, title, xlabel, ylabel, y_min=0):
     """
@@ -108,6 +184,10 @@ def generate_pdf_report(df, file_path, prompt_name):
 
     elements.append(Paragraph("<b>Overall Analysis</b>", styleSheet['Heading1']))
     elements.append(Spacer(1, 12))
+
+    # Add the binary tree image
+    tree_image = generate_deltas_tree(df)
+    add_plot_to_pdf(elements, tree_image)
 
     overall_stats = calculate_overall_stats(df)
     create_tables_for_analysis(overall_stats, elements, styleSheet, overall=True)
