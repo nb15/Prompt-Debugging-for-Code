@@ -188,8 +188,15 @@ def process_humaneval_deltas(test_type, prompt, entry_point, **kwargs):
     ]
     return deltas
 
-def process_humaneval_testcases(test, **kwargs):
+def process_humaneval_plus_testcases(expected_output, test, entry_point,**kwargs):
+    def prepare_input(inp):
+        return ', '.join([str(i) for i in inp])
+    test = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(test, expected_output)]
+    return test
+
+def process_humaneval_testcases(test, entry_point, **kwargs):
     test = [i.strip() for i in test.split('\n') if 'assert' in i]
+    test = [i.replace('candidate', entry_point) for i in test]
     return test
 
 def process_mbpp_deltas(test_type, text, code, test_list, new_test_list, **kwargs):

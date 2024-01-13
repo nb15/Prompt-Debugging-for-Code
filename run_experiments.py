@@ -27,7 +27,8 @@ parser.add_argument("-m", "--model", default='hf_incoder_1B',help="OpenAI GPT AP
 parser.add_argument("-d", "--dataset", default="HumanEval",help="Dataset", choices=['HumanEval', 'MBPP'])
 parser.add_argument("-p", "--num_prompts", default=1, help="Number of prompts to test", type=int)
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt", type=int)
-parser.add_argument("-t", "--test_type", default='original', help="Type of test to run: new or original", choices=['new', 'original'])
+parser.add_argument("-t", "--test_type", default='original', help="Type of test to run: new or original", choices=['new', 'original', 'evalplus'])
+## 'new' for MBPP is not working
 args = parser.parse_args()
 
 

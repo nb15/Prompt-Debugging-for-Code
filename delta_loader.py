@@ -50,20 +50,28 @@ def get_mbpp_deltas(data_dir='mbpp.jsonl', num_prompts=-1, test_type = 'Original
 
 
 def get_humaneval_deltas(data_dir="HumanEval.jsonl.gz", num_prompts=-1, test_type = 'original'):
-    problems = read_problems(data_dir)
+    if test_type == 'evalplus':
+        from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash
+        from evalplus.evaluate import get_groundtruth
+        problems = get_human_eval_plus()
+
+        dataset_hash = get_human_eval_plus_hash()
+        expected_output = get_groundtruth(problems, dataset_hash, [])
+    else:
+        problems = read_problems(data_dir)
 
     problems = [i for _, i in problems.items()]
     if num_prompts!=-1:
         problems = random.sample(problems, num_prompts)
-    
-    for prompt in problems:
-        prompt['new_test_cases'] = None
-
-    if test_type == 'New':
-        pass        
 
     all_deltas = {prompt['task_id'].split('/')[1]: process_humaneval_deltas(test_type=test_type, **prompt) for prompt in problems}
-    test_cases = {prompt['task_id'].split('/')[1]: process_humaneval_testcases(**prompt) for prompt in problems}
+
+    if test_type == 'evalplus':
+        test_cases = {prompt['task_id'].split('/')[1]: process_humaneval_plus_testcases(
+                                                            expected_output = expected_output[prompt['task_id']['plus']],
+                                                            **prompt) for prompt in problems}
+    else:    
+        test_cases = {prompt['task_id'].split('/')[1]: process_humaneval_testcases(**prompt) for prompt in problems}
 
     return all_deltas, test_cases
 
