@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
@@ -33,7 +34,7 @@ def create_deltas_key_table(df, elements, styleSheet):
 
 def generate_deltas_tree(df):
     """
-    Generate a three-level binary tree image with corrected edges and pass ratios for each delta.
+    Generate a centered three-level binary tree image with corrected edges and pass ratios for each delta.
     """
     def parse_components(components_str):
         """Parse the components string into a list of individual components."""
@@ -43,7 +44,7 @@ def generate_deltas_tree(df):
     components_set = set()
     for components in df['Components']:
         components_set.update(parse_components(components))
-    
+
     component_to_deltas = {component: [] for component in components_set}
     for index, row in df.iterrows():
         for component in parse_components(row['Components']):
@@ -78,26 +79,23 @@ def generate_deltas_tree(df):
     G = nx.DiGraph()
 
     # Adding nodes with pass ratios and edges based on dynamically identified levels
-    G.add_node(f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}")
+    G.add_node(root_node)
     for node, components in level_2_nodes.items():
-        node_label = f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}"
-        G.add_node(node_label)
-        G.add_edge(f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}", node_label)
+        G.add_node(node)
+        G.add_edge(root_node, node)
         for component in components:
             for delta in component_to_deltas[component]:
                 if delta in level_3_nodes:
-                    child_label = f"{delta}\n{delta_pass_ratios.loc[delta, 'Pass Ratio']:.2f}"
-                    G.add_node(child_label)
-                    G.add_edge(node_label, child_label)
+                    G.add_node(delta)
+                    G.add_edge(node, delta)
 
-    # Positioning nodes
-    pos = {f"{root_node}\n{delta_pass_ratios.loc[root_node, 'Pass Ratio']:.2f}": (1, 2)}
-    pos.update({f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}": (idx, 1) for idx, node in enumerate(level_2_nodes)})
-    pos.update({f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}": (idx, 0) for idx, node in enumerate(level_3_nodes)})
+    # Using Graphviz to position nodes
+    pos = graphviz_layout(G, prog='dot')  # This will position the nodes in a hierarchical structure
 
     # Drawing the tree
-    plt.figure(figsize=(6, 4))
-    nx.draw(G, pos, with_labels=True, node_size=3500, node_color='skyblue', font_size=10, edge_color='black', arrowsize=20)
+    plt.figure(figsize=(6, 4))  # Adjust figure size to your preference
+    labels = {node: f"{node}\n{delta_pass_ratios.loc[node, 'Pass Ratio']:.2f}" for node in G.nodes()}
+    nx.draw(G, pos, labels=labels, with_labels=True, node_size=3500, node_color='skyblue', font_size=10, edge_color='black', arrowsize=20)
 
     # Saving the image
     img_data = BytesIO()
