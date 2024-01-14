@@ -1,9 +1,8 @@
 import pandas as pd
 import random
 import llm
-import analyze_results as ar
+from analyze_results import run_analysis
 import argparse
-import sys
 import os
 from generate_test_cases import run_generate_new_tests
 import shutil
@@ -57,7 +56,8 @@ print('Prompt numbers to test:', prompt_numbers)
 print("Running llm tests...")
 for prompt_number in prompt_numbers:
     llm.run_llm_tests(args_dict['model'], prompt_number, args_dict['num_runs'], args_dict['test_type'], args_dict['delta_method'], df)
+    print('Prompts completed:', round((prompt_numbers.index(prompt_number) + 1) / len(prompt_numbers) * 100, 2), '%')
 
 # run analysis
 print("Running analysis...")
-ar.run_analysis()
+run_analysis()
