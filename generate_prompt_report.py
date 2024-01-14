@@ -180,14 +180,22 @@ def calculate_overall_stats(df):
     all_runs_delta_analysis['Pass'] = all_runs_delta_analysis.get('Pass', pd.Series(index=all_runs_delta_analysis.index, data=[0]*len(all_runs_delta_analysis)))
     all_runs_delta_analysis['Fail'] = all_runs_delta_analysis.get('Fail', pd.Series(index=all_runs_delta_analysis.index, data=[0]*len(all_runs_delta_analysis)))
 
+    # Calculate pass ratio for each delta
+    all_runs_delta_analysis['Pass Ratio'] = all_runs_delta_analysis['Pass'] / (all_runs_delta_analysis['Pass'] + all_runs_delta_analysis['Fail'])
+
+    # Identify deltas that passed in all runs or failed in all runs
     deltas_passed_in_all_runs = all_runs_delta_analysis[all_runs_delta_analysis['Fail'] == 0].index.tolist()
     deltas_failed_in_all_runs = all_runs_delta_analysis[all_runs_delta_analysis['Pass'] == 0].index.tolist()
+
+    # Identify deltas that passed in some runs but not all
+    deltas_passed_in_some_runs = all_runs_delta_analysis[(all_runs_delta_analysis['Pass Ratio'] > 0) & (all_runs_delta_analysis['Pass Ratio'] < 1)].index.tolist()
 
     error_type_counts_overall = df[df['Pass/Fail'] == 'Fail']['Error Type'].value_counts()
 
     return {
         'deltas_passed_in_all_runs': deltas_passed_in_all_runs,
         'deltas_failed_in_all_runs': deltas_failed_in_all_runs,
+        'deltas_passed_in_some_runs': deltas_passed_in_some_runs,  # New table data
         'delta_analysis_overall': all_runs_delta_analysis,
         'error_type_counts_overall': error_type_counts_overall
     }
@@ -261,6 +269,7 @@ def create_tables_for_analysis(analysis_results, elements, styleSheet, overall=F
     # Generate tables based on whether the analysis is overall or per run
     if overall:
         create_table([["Delta"]] + [[delta] for delta in analysis_results['deltas_passed_in_all_runs']], "Deltas Passed in All Runs")
+        create_table([["Delta"]] + [[delta] for delta in analysis_results['deltas_passed_in_some_runs']], "Deltas Passed in Some Runs")
         create_table([["Delta"]] + [[delta] for delta in analysis_results['deltas_failed_in_all_runs']], "Deltas Failed in All Runs")
         create_table([["Error Type", "Count"]] + [[et, c] for et, c in analysis_results['error_type_counts_overall'].items()], "Error Type Counts (Overall)")
 
