@@ -214,19 +214,15 @@ def generate_pdf_report(df, file_path, prompt_name):
     elements.append(Paragraph(f"<b>Prompt {prompt_name} Analysis Report</b>", styleSheet['Title']))
     elements.append(Spacer(1, 12))
 
-    # Create Deltas Key table
-    create_deltas_key_table(df, elements, styleSheet)
-
-    elements.append(PageBreak())
     elements.append(Paragraph("<b>Overall Analysis</b>", styleSheet['Heading1']))
     elements.append(Spacer(1, 12))
+
+    overall_stats = calculate_overall_stats(df)
+    create_tables_for_analysis(overall_stats, elements, styleSheet, overall=True)
 
     # Add the binary tree image
     tree_image = generate_deltas_tree(df)
     add_plot_to_pdf(elements, tree_image)
-
-    overall_stats = calculate_overall_stats(df)
-    create_tables_for_analysis(overall_stats, elements, styleSheet, overall=True)
 
     elements.append(PageBreak())
     elements.append(Paragraph("<b>Individual Run Analysis</b>", styleSheet['Heading1']))
@@ -239,6 +235,11 @@ def generate_pdf_report(df, file_path, prompt_name):
         elements.append(Spacer(1, 12))
         if run_index < df['Run Index'].max():
             elements.append(PageBreak())
+
+    elements.append(PageBreak())
+    elements.append(Paragraph("<b>Deltas Key</b>", styleSheet['Heading1']))
+    # Create Deltas Key table
+    create_deltas_key_table(df, elements, styleSheet)
 
     doc.build(elements)
 
@@ -280,6 +281,8 @@ def create_tables_for_analysis(analysis_results, elements, styleSheet, overall=F
             pass_ratio = row['Pass'] / total if total > 0 else 0
             delta_data.append([delta, row['Pass'], row['Fail'], f"{pass_ratio:.2f}"])
         create_table(delta_data, "Delta Analysis (Overall)")
+
+        elements.append(Spacer(1, 12))
 
         # Generating and adding the bar graphs
         error_graph_data = generate_bar_graph(analysis_results['error_type_counts_overall'], "Error Type Counts", "Error Types", "Counts")
