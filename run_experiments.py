@@ -23,7 +23,7 @@ logging.basicConfig(
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--model", default='hf_incoder_1B',help="OpenAI GPT API model name", type=str)
+parser.add_argument("-m", "--model", default='hf_starcoderbase_1B',help="OpenAI GPT API model name", type=str)
 parser.add_argument("-d", "--dataset", default="HumanEval",help="Dataset", choices=['HumanEval', 'MBPP'])
 parser.add_argument("-p", "--num_prompts", default=1, help="Number of prompts to test", type=int)
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt", type=int)
@@ -42,7 +42,7 @@ else:
     raise NotImplementedError
 
 
-progress_bar = tqdm(range(len(all_deltas)*args.num_runs))
+progress_bar = tqdm(range(len(all_deltas)*args.num_runs*6))
 
 logger.info("Running llm tests...")
 final_results = []
@@ -58,7 +58,7 @@ for prompt_index, deltas in all_deltas.items():
             if 'OpenAI' in args.model:
                 generated_code = extract_python_code(generated_output)
             elif 'hf' in args.model:
-                generated_code = generated_output
+                generated_code = extract_python_code_hf(generated_output)
             else:
                 raise NotImplementedError
             file_name = os.path.join(output_directory, f'delta_{run_index}_{i}.py')

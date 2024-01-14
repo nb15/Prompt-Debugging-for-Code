@@ -44,6 +44,16 @@ def extract_python_code(gpt_output):
             code_block.append(line)
     return '\n'.join(code_block)
 
+def extract_python_code_hf(model_output):
+    function_start_idx = model_output.find('def')
+    if function_start_idx != -1:
+        return model_output[function_start_idx:]
+    
+    function_start_idx = model_output.find('class')
+    if function_start_idx != -1:
+        return model_output[function_start_idx:]
+    return ''
+
 # Define a timeout duration for your test cases (in seconds)
 TEST_CASE_TIMEOUT = 30  # Example: 30 seconds
 
@@ -173,17 +183,14 @@ def process_humaneval_deltas(test_type, prompt, entry_point, **kwargs):
     
     function_header = extract_function_header(prompt, entry_point)
     text = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
-    if test_type == 'original':
-        test_list = prompt.split(text)[1].strip()
-    else:
-        raise NotImplementedError
+    test_list = prompt.split(text)[1].strip().replace('"', '')
     
     deltas = [
-        f"{text}\n{function_header}\n{test_list}",
+        f"{text}\n{test_list}\n{function_header}",
         text,
         f"{text}\n{function_header}",
         function_header,
-        f"{function_header}\n{test_list}",
+        f"{test_list}\n{function_header}",
         test_list
     ]
     return deltas
