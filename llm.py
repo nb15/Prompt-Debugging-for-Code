@@ -135,13 +135,12 @@ def main(df):
     code = str(df.iloc[prompt_index]['code'])
     function_header = str(extract_function_header(code))
     test_list = df.iloc[prompt_index]['new_test_list'] if args_dict['test_type'] == 'new' else df.iloc[prompt_index]['test_list']
-    test_list = '\n'.join(test_list) if isinstance(test_list, list) else str(test_list)
 
     # Define delta components as a dictionary
     delta_components = {
         'docstring': docstring,
         'function_header': function_header,
-        'test_list': test_list
+        'test_list': str(test_list)
     }
 
     # Choose between permutations and combinations
