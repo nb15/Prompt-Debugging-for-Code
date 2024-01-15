@@ -54,26 +54,49 @@ def generate_local_llm_output(delta, llm):
     answer = response["choices"][0]["text"]
     return answer
 
-
-def generate_huggingface_output(delta, llm):
+def get_hf_model(model):
+    llm = model_dict[model]
     tokenizer = AutoTokenizer.from_pretrained(llm)
     model = AutoModelForCausalLM.from_pretrained(llm)
+    
     if 'incoder' in llm:
         tokenizer.add_special_tokens({"pad_token": "<pad>"})
         tokenizer.padding_side = "right"
     else:
-        tokenizer.pad_token = "<|endoftext|>"
+        tokenizer.add_special_tokens({"pad_token": "<|endoftext|>"})
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
         model.half()
     model.to(device)
     model.eval()
+    return model, tokenizer
+
+
+def generate_huggingface_output(delta, llm, model = None, tokenizer = None):
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(llm)
+    
+    if model is None:
+        model = AutoModelForCausalLM.from_pretrained(llm)
+    
+        if 'incoder' in llm:
+            tokenizer.add_special_tokens({"pad_token": "<pad>"})
+            tokenizer.padding_side = "right"
+        else:
+            tokenizer.add_special_tokens({"pad_token": "<|endoftext|>"})
+        model.to(device)
+        model.eval()
+    
+    if torch.cuda.is_available():
+        model.half()
 
     input_ids = tokenizer([delta], return_tensors="pt").input_ids.to(device)
     current_length = input_ids.flatten().size(0)
 
-    max_len = 2048
+    max_len = 1024
     model_output = model.generate(input_ids=input_ids,
                                 max_length = max_len,
                                 num_return_sequences = 1,
@@ -103,16 +126,16 @@ def generate_huggingface_output(delta, llm):
         num_non_pad = model_output_seq.ne(1).sum()
         model_output_seq = model_output_seq[:num_non_pad]
         preds = tokenizer.decode(model_output_seq)
-        preds = incoder_post_process(["</code>", "# SOLUTION END"], preds)
+        processed_preds = incoder_post_process(["</code>", "# SOLUTION END"], preds)
     else:
         stop_words=["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif", "\n```", "<file_sep>", "<|endoftext|>"]
         num_non_pad = model_output_seq.ne(tokenizer.eos_token_id).sum()
         model_output_seq = model_output_seq[:num_non_pad]
-        generated_preds = tokenizer.decode(model_output_seq[current_length:])
-        preds = starcoder_postprocess(stop_words, generated_preds, delta)
+        preds = tokenizer.decode(model_output_seq[current_length:])
+        processed_preds = starcoder_postprocess(stop_words, preds, delta)
         
     
-    return preds
+    return preds, processed_preds
     
 
 def generate_model_output(delta, model):

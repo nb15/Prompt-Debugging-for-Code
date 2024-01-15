@@ -28,7 +28,7 @@ def extract_humaneval_docstring(code, function_header, stop_words):
     for stop_word in stop_words:
         if stop_word in text:
             text = text.split(stop_word)[0]
-    return text.strip().replace('"', '')
+    return text
 
 def extract_python_code(gpt_output):
     lines = gpt_output.split('\n')
@@ -182,8 +182,9 @@ def run_llm_tests(model, prompt_num, num_runs, test_type, df):
 def process_humaneval_deltas(test_type, prompt, entry_point, **kwargs):
     
     function_header = extract_function_header(prompt, entry_point)
-    text = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
+    text = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}(', f'  {entry_point}('])
     test_list = prompt.split(text)[1].strip().replace('"', '')
+    text = text.strip().replace('"', '')
     
     deltas = [
         f"{text}\n{test_list}\n{function_header}",
@@ -191,7 +192,7 @@ def process_humaneval_deltas(test_type, prompt, entry_point, **kwargs):
         f"{text}\n{function_header}",
         function_header,
         f"{test_list}\n{function_header}",
-        test_list
+        #test_list
     ]
     return deltas
 
