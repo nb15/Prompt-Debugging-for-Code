@@ -283,8 +283,12 @@ def create_tables_for_analysis(analysis_results, elements, styleSheet, overall=F
         elements.append(Spacer(1, 12))
 
         # Generating and adding the bar graphs
-        error_graph_data = generate_bar_graph(analysis_results['error_type_counts_overall'], "Error Type Counts", "Error Types", "Counts")
-        add_plot_to_pdf(elements, error_graph_data)
+        if not analysis_results['error_type_counts_overall'].empty:
+            error_graph_data = generate_bar_graph(analysis_results['error_type_counts_overall'], "Error Type Counts", "Error Types", "Counts")
+            add_plot_to_pdf(elements, error_graph_data)
+        else:
+            no_error_note = Paragraph("NOTE: No 'Fail' entries were found across all runs, hence no error type count plot was generated.", styleSheet['BodyText'])
+            elements.append(no_error_note)
 
         delta_graph_data = generate_bar_graph(analysis_results['delta_analysis_overall']['Pass'], "Delta Analysis - Pass Count", "Deltas", "Pass Count")
         add_plot_to_pdf(elements, delta_graph_data)
