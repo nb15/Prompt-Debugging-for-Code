@@ -101,7 +101,91 @@ def create_global_stats_table(global_stats):
     ]
     return create_table(data, "Global Statistics")
 
-def generate_global_pdf_report(df, file_path):
+def calculate_delta_pass_frequency(df, total_prompts, runs_per_prompt):
+    """
+    Calculate the frequency of each delta passing in all runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: DataFrame with delta and its corresponding pass frequency.
+    """
+    pass_counts = df[df['Pass/Fail'] == 'Pass'].groupby(['Prompt', 'Delta']).size()
+    all_pass = pass_counts[pass_counts == runs_per_prompt].reset_index().groupby('Delta').size()
+    delta_frequency = pd.DataFrame(all_pass, columns=['Frequency']).reset_index()
+    return delta_frequency
+
+def create_delta_pass_frequency_table(df, total_prompts, runs_per_prompt):
+    """
+    Create a table for the frequency of each delta passing in all runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: Table object.
+    """
+    delta_frequency = calculate_delta_pass_frequency(df, total_prompts, runs_per_prompt)
+    data = [['Delta', 'Frequency']] + delta_frequency.values.tolist()
+
+    return create_table(data, "Delta Pass Frequency Table")
+
+def calculate_delta_fail_frequency(df, total_prompts, runs_per_prompt):
+    """
+    Calculate the frequency of each delta failing in all runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: DataFrame with delta and its corresponding fail frequency.
+    """
+    fail_counts = df[df['Pass/Fail'] == 'Fail'].groupby(['Prompt', 'Delta']).size()
+    all_fail = fail_counts[fail_counts == runs_per_prompt].reset_index().groupby('Delta').size()
+    delta_frequency = pd.DataFrame(all_fail, columns=['Frequency']).reset_index()
+    return delta_frequency
+
+def create_delta_fail_frequency_table(df, total_prompts, runs_per_prompt):
+    """
+    Create a table for the frequency of each delta failing in all runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: Table object.
+    """
+    delta_frequency = calculate_delta_fail_frequency(df, total_prompts, runs_per_prompt)
+    data = [['Delta', 'Frequency']] + delta_frequency.values.tolist()
+
+    return create_table(data, "Delta Fail Frequency Table")
+
+def calculate_delta_pass_some_runs_frequency(df, total_prompts, runs_per_prompt):
+    """
+    Calculate the frequency of each delta passing in some runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: DataFrame with delta and its corresponding frequency of passing in some runs.
+    """
+    pass_counts = df[df['Pass/Fail'] == 'Pass'].groupby(['Prompt', 'Delta']).size()
+    some_pass = pass_counts[(pass_counts > 0) & (pass_counts < runs_per_prompt)].reset_index().groupby('Delta').size()
+    delta_frequency = pd.DataFrame(some_pass, columns=['Frequency']).reset_index()
+    return delta_frequency
+
+def create_delta_pass_some_runs_frequency_table(df, total_prompts, runs_per_prompt):
+    """
+    Create a table for the frequency of each delta passing in some runs for each prompt.
+
+    :param df: DataFrame containing the test results.
+    :param total_prompts: Total number of prompts.
+    :param runs_per_prompt: Number of runs per prompt.
+    :return: Table object.
+    """
+    delta_frequency = calculate_delta_pass_some_runs_frequency(df, total_prompts, runs_per_prompt)
+    data = [['Delta', 'Frequency']] + delta_frequency.values.tolist()
+
+    return create_table(data, "Delta Pass in Some Runs Frequency Table")
+
+def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
     """
     Generate a global PDF report from the aggregated DataFrame.
 
@@ -119,6 +203,24 @@ def generate_global_pdf_report(df, file_path):
     global_stats = calculate_global_stats(df)
     global_stats_table = create_global_stats_table(global_stats)
     elements.append(global_stats_table)
+    elements.append(Spacer(1, 12))
+
+    # Delta Pass Frequency Table
+    elements.append(Paragraph(f"Delta Pass in All Runs Frequency", styleSheet['Heading2']))
+    delta_pass_freq_table = create_delta_pass_frequency_table(df, total_prompts, runs_per_prompt)
+    elements.append(delta_pass_freq_table)
+    elements.append(Spacer(1, 12))
+
+    # Delta Pass in Some Runs Frequency Table
+    elements.append(Paragraph(f"Delta Pass in Some Runs Frequency", styleSheet['Heading2']))
+    delta_pass_some_runs_freq_table = create_delta_pass_some_runs_frequency_table(df, total_prompts, runs_per_prompt)
+    elements.append(delta_pass_some_runs_freq_table)
+    elements.append(Spacer(1, 12))
+
+    # Delta Fail Frequency Table
+    elements.append(Paragraph(f"Delta Fail in All Runs Frequency", styleSheet['Heading2']))
+    delta_fail_freq_table = create_delta_fail_frequency_table(df, total_prompts, runs_per_prompt)
+    elements.append(delta_fail_freq_table)
     elements.append(Spacer(1, 12))
 
     # Error Frequency Table

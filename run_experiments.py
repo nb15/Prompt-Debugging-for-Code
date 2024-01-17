@@ -71,4 +71,4 @@ for prompt_number in prompt_numbers:
 
 # run analysis
 print("Running analysis...")
-run_analysis()
+run_analysis(len(prompt_numbers), args_dict['num_runs'])

@@ -29,7 +29,7 @@ def process_and_aggregate_csv_files(base_path, perform_individual_analysis):
                         all_data.append(df)
     return pd.concat(all_data, ignore_index=True)
 
-def run_analysis():
+def run_analysis(total_prompts, runs_per_prompt):
     """
     Run the analysis on the generated code files and produce reports.
     """
@@ -39,5 +39,5 @@ def run_analysis():
 
     # Generate global report
     global_report_path = os.path.join(base_folder_path, 'global_analysis_report.pdf')
-    generate_global_pdf_report(global_data, global_report_path)
+    generate_global_pdf_report(global_data, global_report_path, total_prompts, runs_per_prompt)
     print(f'Generated global analysis report at {global_report_path}')
