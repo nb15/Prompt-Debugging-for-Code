@@ -1,8 +1,8 @@
-import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from io import BytesIO
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 
@@ -185,6 +185,53 @@ def create_delta_pass_some_runs_frequency_table(df, total_prompts, runs_per_prom
 
     return create_table(data, "Delta Pass in Some Runs Frequency Table")
 
+# Function to create a plot and return it as an Image object
+def create_plot_image(plt_function):
+    buffer = BytesIO()
+    plt_function()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    buffer.seek(0)
+    return Image(buffer)
+
+# Function to plot Delta Performance
+def delta_performance_plot(global_stats):
+    def plt_function():
+        fig, ax1 = plt.subplots(figsize=(6, 4))
+        ax1.bar(global_stats.index, global_stats['Pass'], label='Pass', color='green')
+        ax1.bar(global_stats.index, global_stats['Fail'], bottom=global_stats['Pass'], label='Fail', color='red')
+        ax1.set_xlabel('Delta')
+        ax1.set_ylabel('Count')
+        ax1.legend(loc='upper left')
+        ax2 = ax1.twinx()
+        ax2.plot(global_stats.index, global_stats['Pass Ratio'], label='Pass Ratio', color='blue', marker='o')
+        ax2.set_ylabel('Pass Ratio')
+        ax2.legend(loc='upper right')
+        plt.tight_layout()
+    return create_plot_image(plt_function)
+
+# Function to plot Delta Frequency
+def delta_frequency_plot(df, title):
+    def plt_function():
+        plt.figure(figsize=(6, 4))
+        plt.bar(df['Delta'], df['Frequency'])
+        plt.xlabel('Delta')
+        plt.ylabel('Frequency')
+        plt.title(title)
+        plt.tight_layout()  
+    return create_plot_image(plt_function)
+
+# Function to plot Error Frequency
+def error_frequency_plot(df):
+    def plt_function():
+        plt.figure(figsize=(6, 4))
+        plt.barh(df['Error Type'], df['Frequency'])
+        plt.xlabel('Frequency')
+        plt.ylabel('Error Type')
+        plt.title('Error Frequency')
+        plt.tight_layout()  
+    return create_plot_image(plt_function)
+
 def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
     """
     Generate a global PDF report from the aggregated DataFrame.
@@ -197,42 +244,87 @@ def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
 
     elements.append(Paragraph("<b>Global Analysis Report</b>", styleSheet['Title']))
     elements.append(Spacer(1, 12))
+    elements.append(Paragraph("<b>Tables</b>", styleSheet['Heading1']))
+    elements.append(Spacer(1, 12))
+
+    # Calculate global statistics
+    global_stats = calculate_global_stats(df)
 
     # Global Statistics Table
-    elements.append(Paragraph(f"Delta Performance", styleSheet['Heading2']))
-    global_stats = calculate_global_stats(df)
+    elements.append(Paragraph(f"Delta Performance ({total_prompts} Prompts, {runs_per_prompt} Runs Each)", styleSheet['Heading2']))
     global_stats_table = create_global_stats_table(global_stats)
     elements.append(global_stats_table)
     elements.append(Spacer(1, 12))
 
     # Delta Pass Frequency Table
-    elements.append(Paragraph(f"Delta Pass in All Runs Frequency", styleSheet['Heading2']))
+    elements.append(Paragraph(f"Frequency of Deltas that Passed in All Runs", styleSheet['Heading2']))
     delta_pass_freq_table = create_delta_pass_frequency_table(df, total_prompts, runs_per_prompt)
     elements.append(delta_pass_freq_table)
     elements.append(Spacer(1, 12))
 
     # Delta Pass in Some Runs Frequency Table
-    elements.append(Paragraph(f"Delta Pass in Some Runs Frequency", styleSheet['Heading2']))
+    elements.append(Paragraph(f"Frequency of Deltas that Passed in Some Runs", styleSheet['Heading2']))
     delta_pass_some_runs_freq_table = create_delta_pass_some_runs_frequency_table(df, total_prompts, runs_per_prompt)
     elements.append(delta_pass_some_runs_freq_table)
     elements.append(Spacer(1, 12))
 
     # Delta Fail Frequency Table
-    elements.append(Paragraph(f"Delta Fail in All Runs Frequency", styleSheet['Heading2']))
+    elements.append(Paragraph(f"Frequency of Deltas that Failed in All Runs", styleSheet['Heading2']))
     delta_fail_freq_table = create_delta_fail_frequency_table(df, total_prompts, runs_per_prompt)
     elements.append(delta_fail_freq_table)
     elements.append(Spacer(1, 12))
 
     # Error Frequency Table
-    elements.append(Paragraph(f"Error Frequency", styleSheet['Heading2']))
+    elements.append(Paragraph(f"Frequency of Error Types", styleSheet['Heading2']))
     error_freq_table = error_frequency_table(df)
     elements.append(error_freq_table)
     elements.append(Spacer(1, 12))
 
     # Most Common Error per Delta Table
-    elements.append(Paragraph(f"Most Common Error per Delta", styleSheet['Heading2']))
+    elements.append(Paragraph(f"Most Common Error Type per Delta", styleSheet['Heading2']))
     common_error_delta_table = most_common_error_per_delta_table(df)
     elements.append(common_error_delta_table)
+    elements.append(Spacer(1, 12))
+
+    elements.append(PageBreak())
+    elements.append(Paragraph("<b>Plots</b>", styleSheet['Heading1']))
+
+    # Delta Performance Plot
+    elements.append(Paragraph(f"Delta Performance Plot", styleSheet['Heading2']))
+    delta_performance_plot_image = delta_performance_plot(global_stats)
+    elements.append(delta_performance_plot_image)
+
+    # Delta Pass in All Runs Frequency Plot
+    elements.append(PageBreak())
+    elements.append(Paragraph(f"Frequency of Deltas that Passed in All Runs Plot", styleSheet['Heading2']))
+    delta_pass_freq_df = calculate_delta_pass_frequency(df, total_prompts, runs_per_prompt)
+    delta_pass_freq_plot_image = delta_frequency_plot(delta_pass_freq_df, "Delta Pass in All Runs Frequency")
+    elements.append(delta_pass_freq_plot_image)
+    elements.append(Spacer(1, 12))
+
+    # Delta Pass in Some Runs Frequency Plot
+    elements.append(PageBreak())
+    elements.append(Paragraph(f"Frequency of Deltas that Passed in Some Runs Plot", styleSheet['Heading2']))
+    delta_pass_some_runs_freq_df = calculate_delta_pass_some_runs_frequency(df, total_prompts, runs_per_prompt)
+    delta_pass_some_runs_freq_plot_image = delta_frequency_plot(delta_pass_some_runs_freq_df, "Delta Pass in Some Runs Frequency")
+    elements.append(delta_pass_some_runs_freq_plot_image)
+    elements.append(Spacer(1, 12))
+
+    # Delta Fail in All Runs Frequency Plot
+    elements.append(PageBreak())
+    elements.append(Paragraph(f"Frequency of Deltas that Failed in All Runs Plot", styleSheet['Heading2']))
+    delta_fail_freq_df = calculate_delta_fail_frequency(df, total_prompts, runs_per_prompt)
+    delta_fail_freq_plot_image = delta_frequency_plot(delta_fail_freq_df, "Delta Fail in All Runs Frequency")
+    elements.append(delta_fail_freq_plot_image)
+    elements.append(Spacer(1, 12))
+
+    # Error Frequency Plot
+    elements.append(PageBreak())
+    elements.append(Paragraph(f"Frequency of Error Types Plot", styleSheet['Heading2']))
+    error_freq_df = df[df['Pass/Fail'] == 'Fail']['Error Type'].value_counts().reset_index()
+    error_freq_df.columns = ['Error Type', 'Frequency']
+    error_freq_plot_image = error_frequency_plot(error_freq_df)
+    elements.append(error_freq_plot_image)
     elements.append(Spacer(1, 12))
 
     # Deltas Key Table
