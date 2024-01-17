@@ -56,17 +56,38 @@ def error_frequency_table(df):
 
 def most_common_error_per_delta_table(df):
     """
-    Create a table showing the most common error for each delta.
+    Create a table showing the most common error for each delta along with the percentage of that error type.
 
-    :param df: DataFrame containing the test
-    results.
+    :param df: DataFrame containing the test results.
     :return: Table object.
     """
-    most_common_error = df[df['Pass/Fail'] == 'Fail'].groupby('Delta')['Error Type'].agg(lambda x: x.value_counts().index[0]).reset_index()
-    most_common_error.columns = ['Delta', 'Most Common Error']
-    data = [['Delta', 'Most Common Error']] + most_common_error.values.tolist()
+    # Calculate the most common error and its count for each delta
+    most_common_error = df[df['Pass/Fail'] == 'Fail'].groupby('Delta')['Error Type'].agg(
+        lambda x: x.value_counts().index[0]  # Get the most common error
+    ).reset_index()
+    most_common_count = df[df['Pass/Fail'] == 'Fail'].groupby('Delta')['Error Type'].agg(
+        lambda x: x.value_counts().iloc[0]  # Get the count of the most common error
+    ).reset_index(name='Count')
+
+    # Merge the two dataframes to get error type and count side by side
+    combined = pd.merge(most_common_error, most_common_count, on='Delta')
+
+    # Calculate the total count of errors for each delta
+    total_errors_per_delta = df[df['Pass/Fail'] == 'Fail'].groupby('Delta').size().reset_index(name='Total')
+
+    # Merge to get the total errors alongside the most common error and its count
+    combined = pd.merge(combined, total_errors_per_delta, on='Delta')
+
+    # Calculate the percentage and append it to the error type string
+    combined['Most Common Error'] = combined.apply(
+        lambda row: f"{row['Error Type']} ({row['Count'] / row['Total']:.2%})", axis=1
+    )
+
+    # Create the data list to generate the table
+    data = [['Delta', 'Most Common Error']] + combined[['Delta', 'Most Common Error']].values.tolist()
 
     return create_table(data, "Most Common Error per Delta Table")
+
 
 def create_table(data, title=None):
     """
