@@ -1,6 +1,6 @@
 # PromptDebuggingForCode
 
-This project is designed to run experiments for debugging code prompts using various large language models (LLMs). Requires Python 3.12 or later.
+This project is designed to run experiments for debugging code prompts using various large language models (LLMs). Requires Python ~~3.12 or later~~ **3.9 (there is no torch release for 3.12)**.
 
 ## Installation
 

@@ -5,6 +5,9 @@ import itertools
 import timeout_decorator
 import models
 
+# Define a timeout duration for your test cases (in seconds)
+TEST_CASE_TIMEOUT = 30  # 30 seconds
+
 # Dictionary for storing arguments
 args_dict = {
     'model': '',
@@ -14,7 +17,8 @@ args_dict = {
     'delta_method': ''  # New argument for specifying delta generation method
 }
 
-def extract_function_header(code):
+
+def extract_function_header(code, entry_point=None):
     """
     Extract the function header from a block of code.
 
@@ -23,8 +27,19 @@ def extract_function_header(code):
     """
     for line in code.split('\n'):
         if line.strip().startswith('def'):
-            return line
+            if entry_point:
+                if entry_point in line:
+                    return line
+            else:
+                return line
     return ''
+
+def extract_humaneval_docstring(code, function_header, stop_words):
+    text = code.split(function_header)[1].strip()
+    for stop_word in stop_words:
+        if stop_word in text:
+            text = text.split(stop_word)[0]
+    return text
 
 def extract_python_code(gpt_output):
     """
@@ -44,8 +59,15 @@ def extract_python_code(gpt_output):
             code_block.append(line)
     return '\n'.join(code_block)
 
-# Define a timeout duration for test cases
-TEST_CASE_TIMEOUT = 30  # Example: 30 seconds
+def extract_python_code_hf(model_output):
+    function_start_idx = model_output.find('def')
+    if function_start_idx != -1:
+        return model_output[function_start_idx:]
+    
+    function_start_idx = model_output.find('class')
+    if function_start_idx != -1:
+        return model_output[function_start_idx:]
+    return ''
 
 def run_single_test_case(module, test):
     """
@@ -211,6 +233,51 @@ def run_llm_tests(model, prompt_num, num_runs, test_type, delta_method, df):
     """
     args_dict.update({'model': model, 'prompt': prompt_num, 'num_runs': num_runs, 'test_type': test_type, 'delta_method': delta_method})
     main(df)
+    
+
+def process_humaneval_deltas(test_type, prompt, entry_point, **kwargs):
+    
+    function_header = extract_function_header(prompt, entry_point)
+    text = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}(', f'  {entry_point}('])
+    test_list = prompt.split(text)[1].strip().replace('"', '')
+    text = text.strip().replace('"', '')
+    
+    deltas = [
+        f"{text}\n{test_list}\n{function_header}",
+        text,
+        f"{text}\n{function_header}",
+        function_header,
+        f"{test_list}\n{function_header}",
+        #test_list
+    ]
+    return deltas
+
+def process_humaneval_plus_testcases(expected_output, test, entry_point,**kwargs):
+    def prepare_input(inp):
+        return ', '.join([str(i) for i in inp])
+    test = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(test, expected_output)]
+    return test
+
+def process_humaneval_testcases(test, entry_point, **kwargs):
+    test = [i.strip() for i in test.split('\n') if 'assert' in i]
+    test = [i.replace('candidate', entry_point) for i in test]
+    return test
+
+def process_mbpp_deltas(test_type, text, code, test_list, new_test_list, **kwargs):
+    
+    function_header = extract_function_header(code=code)
+    test_list = new_test_list if test_type == 'new' else test_list
+
+    deltas = [
+        f"{text}\n{function_header}\n{test_list}",
+        text,
+        f"{text}\n{function_header}",
+        function_header,
+        f"{function_header}\n{test_list}",
+        test_list
+    ]
+    return deltas
+
 
 if __name__ == '__main__':
     pass
