@@ -4,7 +4,7 @@ import shutil
 import random
 from generate_test_cases import run_generate_new_tests
 from humaneval_utils import read_problems
-from llm import *
+from adapters import humaneval_adapter, mbpp_adapter
 
 def get_mbpp_dataframe(data_dir='datasets/mbpp.jsonl', num_prompts=-1):
     # Original JSON file
@@ -43,7 +43,7 @@ def get_mbpp_deltas(data_dir='datasets/mbpp.jsonl', num_prompts=-1, test_type = 
     all_deltas, test_cases = {}, ()
 
     for idx, prompt_args in enumerate(df.to_dict(orient='records')):
-        all_deltas[idx] = process_mbpp_deltas(test_type=test_type, **prompt_args)
+        all_deltas[idx] = mbpp_adapter.process_mbpp_deltas(test_type=test_type, **prompt_args)
         test_cases[idx] = all_deltas[idx][-1]
 
     return all_deltas, test_cases
@@ -62,8 +62,8 @@ def get_humaneval_deltas(data_dir="datasets/humaneval.jsonl.gz", num_prompts=-1,
     if test_type == 'New':
         pass        
 
-    all_deltas = {prompt['task_id'].split('/')[1]: process_humaneval_deltas(test_type=test_type, **prompt) for prompt in problems}
-    test_cases = {prompt['task_id'].split('/')[1]: process_humaneval_testcases(**prompt) for prompt in problems}
+    all_deltas = {prompt['task_id'].split('/')[1]: humaneval_adapter.process_humaneval_deltas(test_type=test_type, **prompt) for prompt in problems}
+    test_cases = {prompt['task_id'].split('/')[1]: humaneval_adapter.process_humaneval_testcases(**prompt) for prompt in problems}
 
     return all_deltas, test_cases
 

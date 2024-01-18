@@ -1,4 +1,5 @@
 import ast
+import general_adapter
 
 def parse_function_inputs(input_str):
     # Get the substring before the first '=='
@@ -19,3 +20,18 @@ def parse_function_inputs(input_str):
     inputs = [ast.literal_eval(arg) for arg in args]
 
     return inputs
+
+def process_mbpp_deltas(test_type, text, code, test_list, new_test_list, **kwargs):
+    
+    function_header = general_adapter.extract_function_header(code=code)
+    test_list = new_test_list if test_type == 'new' else test_list
+
+    deltas = [
+        f"{text}\n{function_header}\n{test_list}",
+        text,
+        f"{text}\n{function_header}",
+        function_header,
+        f"{function_header}\n{test_list}",
+        test_list
+    ]
+    return deltas
