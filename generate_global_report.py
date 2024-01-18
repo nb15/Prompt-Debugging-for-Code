@@ -5,6 +5,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
+import numpy as np
 
 def calculate_global_stats(df):
     """
@@ -253,6 +254,31 @@ def error_frequency_plot(df):
         plt.tight_layout()  
     return create_plot_image(plt_function)
 
+def calculate_variance(df):
+    """
+    Calculate the variance in pass counts for each delta across all runs for each prompt.
+    
+    :param df: DataFrame containing the test results from all prompts.
+    :return: A DataFrame with the variance for each delta for each prompt.
+    """
+    # We need to group by both 'Prompt' and 'Delta' since we have multiple prompts
+    variances = df.groupby(['Prompt', 'Delta']).apply(
+        lambda x: np.var(x['Pass/Fail'] == 'Pass', ddof=0)
+    ).reset_index(name='Variance')
+    
+    return variances
+
+def calculate_average_variance(variances):
+    """
+    Calculate the average variance for each delta across all prompts.
+    
+    :param variances: DataFrame containing the variance for each delta for each prompt.
+    :return: A DataFrame with the average variance for each delta.
+    """
+    average_variances = variances.groupby('Delta')['Variance'].mean().reset_index()
+    return average_variances
+
+
 def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
     """
     Generate a global PDF report from the aggregated DataFrame.
@@ -275,6 +301,15 @@ def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
     elements.append(Paragraph(f"Delta Performance ({total_prompts} Prompts, {runs_per_prompt} Runs Each)", styleSheet['Heading2']))
     global_stats_table = create_global_stats_table(global_stats)
     elements.append(global_stats_table)
+    elements.append(Spacer(1, 12))
+
+    # Average Variance per Delta Across All Prompts Table
+    elements.append(Paragraph("<b>Average Variance per Delta Across All Prompts</b>", styleSheet['Heading2']))
+    variances = calculate_variance(df)
+    average_variances = calculate_average_variance(variances)
+    average_variance_data = [['Delta', 'Average Variance']] + average_variances.values.tolist()
+    average_variance_table = create_table(average_variance_data)
+    elements.append(average_variance_table)
     elements.append(Spacer(1, 12))
 
     # Delta Pass Frequency Table

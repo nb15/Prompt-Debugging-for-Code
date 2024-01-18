@@ -167,6 +167,22 @@ def analyze_csv_data(df, run_index):
         'delta_analysis': delta_analysis
     }
 
+def calculate_variance(df):
+    """
+    Calculate the variance in pass counts for each delta across all runs.
+    
+    :param df: DataFrame containing the test results.
+    :return: A Series with the variance for each delta.
+    """
+    # Pivot table to count 'Pass' for each delta per run
+    delta_run_counts = df.pivot_table(index='Delta', columns='Run Index', values='Pass/Fail',
+                                      aggfunc=lambda x: (x == 'Pass').sum(), fill_value=0)
+    
+    # Calculate variance for each delta's pass counts
+    variance = delta_run_counts.var(axis=1, ddof=0)  # ddof=0 for population variance
+    
+    return variance
+
 def calculate_overall_stats(df):
     """
     Calculate overall statistics from the DataFrame.
@@ -180,6 +196,10 @@ def calculate_overall_stats(df):
 
     # Calculate pass ratio for each delta
     all_runs_delta_analysis['Pass Ratio'] = all_runs_delta_analysis['Pass'] / (all_runs_delta_analysis['Pass'] + all_runs_delta_analysis['Fail'])
+
+    # Calculate variance for each delta
+    delta_variance = calculate_variance(df)
+    all_runs_delta_analysis['Variance'] = delta_variance
 
     # Identify deltas that passed in all runs or failed in all runs
     deltas_passed_in_all_runs = all_runs_delta_analysis[all_runs_delta_analysis['Fail'] == 0].index.tolist()
@@ -273,11 +293,12 @@ def create_tables_for_analysis(analysis_results, elements, styleSheet, overall=F
         create_table([["Error Type", "Count"]] + [[et, c] for et, c in analysis_results['error_type_counts_overall'].items()], "Error Type Counts (Overall)")
 
         # Adding the Delta Analysis (Overall) table
-        delta_data = [["Delta", "Pass", "Fail", "Pass Ratio"]]
+        delta_data = [["Delta", "Pass", "Fail", "Pass Ratio", "Variance"]]
         for delta, row in analysis_results['delta_analysis_overall'].iterrows():
             total = row['Pass'] + row['Fail']
             pass_ratio = row['Pass'] / total if total > 0 else 0
-            delta_data.append([delta, row['Pass'], row['Fail'], f"{pass_ratio:.2f}"])
+            variance = row['Variance']
+            delta_data.append([delta, row['Pass'], row['Fail'], f"{pass_ratio:.2f}", f"{variance:.2f}"])
         create_table(delta_data, "Delta Analysis (Overall)")
 
         elements.append(Spacer(1, 12))
