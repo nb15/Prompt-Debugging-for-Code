@@ -33,7 +33,7 @@ args_dict = {
 }
 
 # Original JSON file
-df_orig = pd.read_json('mbpp.jsonl', lines=True)
+df_orig = pd.read_json('datasets/mbpp.jsonl', lines=True)
 
 # Check if the folder 'generated_code_files' exists and delete if it does
 print('Deleting generated_code_files folder...')

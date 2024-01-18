@@ -4,7 +4,7 @@ import json
 import os
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-HUMAN_EVAL = os.path.join(ROOT, "HumanEval.jsonl.gz")
+HUMAN_EVAL = os.path.join(ROOT, "datasets/humaneval.jsonl.gz")
 
 
 def read_problems(evalset_file: str = HUMAN_EVAL) -> Dict[str, Dict]:

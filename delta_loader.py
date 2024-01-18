@@ -6,7 +6,7 @@ from generate_test_cases import run_generate_new_tests
 from humaneval_utils import read_problems
 from llm import *
 
-def get_mbpp_dataframe(data_dir='mbpp.jsonl', num_prompts=-1):
+def get_mbpp_dataframe(data_dir='datasets/mbpp.jsonl', num_prompts=-1):
     # Original JSON file
     df_orig = pd.read_json(data_dir, lines=True)
 
@@ -38,7 +38,7 @@ def get_mbpp_dataframe(data_dir='mbpp.jsonl', num_prompts=-1):
     return df
 
 
-def get_mbpp_deltas(data_dir='mbpp.jsonl', num_prompts=-1, test_type = 'Original'):
+def get_mbpp_deltas(data_dir='datasets/mbpp.jsonl', num_prompts=-1, test_type = 'Original'):
     df = get_mbpp_dataframe(data_dir, num_prompts)    
     all_deltas, test_cases = {}, ()
 
@@ -49,7 +49,7 @@ def get_mbpp_deltas(data_dir='mbpp.jsonl', num_prompts=-1, test_type = 'Original
     return all_deltas, test_cases
 
 
-def get_humaneval_deltas(data_dir="HumanEval.jsonl.gz", num_prompts=-1, test_type = 'original'):
+def get_humaneval_deltas(data_dir="datasets/humaneval.jsonl.gz", num_prompts=-1, test_type = 'original'):
     problems = read_problems(data_dir)
 
     problems = [i for _, i in problems.items()]
