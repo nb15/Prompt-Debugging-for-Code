@@ -1,7 +1,7 @@
 import pandas as pd
 import traceback
 import subprocess
-from .adapters import mbpp_adapter
+from adapters import mbpp_adapter
 import value_generator
 
 # List of prompts that are problematic for parsing

@@ -1,19 +1,9 @@
 import pandas as pd
 import os
 import importlib.util
-import itertools
 import timeout_decorator
 import models
-from adapters import general_adapter
-
-# Dictionary for storing arguments
-args_dict = {
-    'model': '',
-    'prompt': '',
-    'num_runs': '',
-    'test_type': '',
-    'delta_method': ''  # New argument for specifying delta generation method
-}
+from adapters import general_adapter, mbpp_adapter
 
 # Define a timeout duration for test cases
 TEST_CASE_TIMEOUT = 30  # Example: 30 seconds
@@ -87,50 +77,23 @@ def run_test_cases_for_file(file_path, test_list):
     except Exception as e:
         return ('Fail', f'Runtime Error - {e.__class__.__name__}')
 
-def main(df):
+def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_method, df):
     """
-    Main function to run tests on a DataFrame of code and test cases.
+    Run the Language Learning Model (LLM) tests.
 
+    :param model: The model to use for generating code.
+    :param prompt_index: Index of prompt to test.
+    :param num_runs: Number of times to run the tests.
+    :param test_type: The type of test to run ('new' or other).
+    :param delta_method: The method for generating deltas ('permutations' or 'combinations').
     :param df: A DataFrame containing code and test cases.
     """
-    df = df[['text', 'code', 'test_list', 'new_test_list']].copy()
-    df['function_header'] = df['code'].apply(general_adapter.extract_function_header)
-
-    prompt_index = int(args_dict['prompt']) if args_dict['prompt'] else 0
-    num_runs = int(args_dict['num_runs']) if args_dict['num_runs'] else 1
     output_directory = f'generated_code_files/prompt_{prompt_index}'
     os.makedirs(output_directory, exist_ok=True)
 
-    # Extracting and ensuring the data types
-    docstring = str(df.iloc[prompt_index]['text'])
-    code = str(df.iloc[prompt_index]['code'])
-    function_header = str(general_adapter.extract_function_header(code))
-    test_list = df.iloc[prompt_index]['new_test_list'] if args_dict['test_type'] == 'new' else df.iloc[prompt_index]['test_list']
-
-    # Define delta components as a dictionary
-    delta_components = {
-        'docstring': docstring,
-        'function_header': function_header,
-        'test_list': str(test_list)
-    }
-
-    # Choose between permutations and combinations
-    delta_method = args_dict.get('delta_method', 'permutations')
-    delta_generator = itertools.permutations if delta_method == 'permutations' else itertools.combinations
-
-    # Generate all permutations or combinations of the deltas
-    delta_elements = ['docstring', 'function_header', 'test_list']
-    all_deltas = []
-    for r in range(1, len(delta_elements) + 1):
-        all_deltas.extend(delta_generator(delta_elements, r))
-
-    deltas = []
-    delta_components_info = {}  # To store components information
-    for delta in all_deltas:
-        delta_key = '\n'.join([delta_components[element] for element in delta])
-        deltas.append(delta_key)
-        delta_components_info[delta_key] = ', '.join(delta)  # Store the components for each delta
-
+    # Generate deltas
+    if dataset == 'mbpp':
+        deltas, delta_components_info, test_list = mbpp_adapter.generate_deltas(df, prompt_index, delta_method, test_type)
 
     # Initialize results dictionary
     results = {f'delta_{i}': [] for i in range(len(deltas))}
@@ -139,7 +102,7 @@ def main(df):
         print(f"Run {run_index + 1} of {num_runs} for prompt {prompt_index}")
         for i, delta in enumerate(deltas):
             print(f"Generating code for delta {i + 1} of {len(deltas)}")
-            generated_output = models.generate_model_output(delta, args_dict['model'])
+            generated_output = models.generate_model_output(delta, model)
             generated_code = general_adapter.extract_python_code(generated_output)
             file_name = f"{output_directory}/delta_{run_index}_{i}.py"
             with open(file_name, 'w') as file:
@@ -168,21 +131,3 @@ def main(df):
     csv_filename = f'{output_directory}/results_prompt_{prompt_index}.csv'
     results_df.to_csv(csv_filename, index=False)
     print(f"CSV file created: {csv_filename}")
-
-def run_llm_tests(model, prompt_num, num_runs, test_type, delta_method, df):
-    """
-    Run the Language Learning Model (LLM) tests.
-
-    :param model: The model to use for generating code.
-    :param prompt_num: The prompt number to test.
-    :param num_runs: Number of times to run the tests.
-    :param test_type: The type of test to run ('new' or other).
-    :param delta_method: The method for generating deltas ('permutations' or 'combinations').
-    :param df: A DataFrame containing code and test cases.
-    """
-    args_dict.update({'model': model, 'prompt': prompt_num, 'num_runs': num_runs, 'test_type': test_type, 'delta_method': delta_method})
-    main(df)
-
-
-if __name__ == '__main__':
-    pass

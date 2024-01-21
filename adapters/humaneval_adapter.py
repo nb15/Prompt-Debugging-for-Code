@@ -1,4 +1,4 @@
-import general_adapter
+from . import general_adapter
 
 def extract_humaneval_docstring(code, function_header, stop_words):
     text = code.split(function_header)[1].strip()
