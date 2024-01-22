@@ -7,8 +7,8 @@ import os
 from generate_test_cases import run_generate_new_tests
 import shutil
 import json
-from humaneval_utils import read_problems
 from tqdm import tqdm
+from adapters import humaneval_adapter
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
@@ -52,7 +52,7 @@ if args_dict['dataset'] == 'mbpp':
         print('New test cases already exist. Skipping generation...')
         df = pd.read_json('mbpp_new_test_cases.jsonl', lines=True)
 elif args_dict['dataset'] == 'humaneval':
-    problems = read_problems("datasets/HumanEval.jsonl.gz")
+    problems = humaneval_adapter.read_problems("datasets/HumanEval.jsonl.gz")
     df = pd.DataFrame.from_dict(problems, orient='index')
     df = df.reset_index(drop=True)
 

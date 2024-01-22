@@ -1,6 +1,29 @@
 from . import general_adapter
 import itertools
 import pandas as pd
+from typing import Iterable, Dict
+import gzip
+import json
+
+def read_problems(evalset_file: str) -> Dict[str, Dict]:
+    return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
+
+
+def stream_jsonl(filename: str) -> Iterable[Dict]:
+    """
+    Parses each jsonl line and yields it as a dictionary
+    """
+    if filename.endswith(".gz"):
+        with open(filename, "rb") as gzfp:
+            with gzip.open(gzfp, 'rt') as fp:
+                for line in fp:
+                    if any(not x.isspace() for x in line):
+                        yield json.loads(line)
+    else:
+        with open(filename, "r") as fp:
+            for line in fp:
+                if any(not x.isspace() for x in line):
+                    yield json.loads(line)
 
 def extract_humaneval_docstring(code, function_header, stop_words):
     text = code.split(function_header)[1].strip()
