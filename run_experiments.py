@@ -8,6 +8,7 @@ from generate_test_cases import run_generate_new_tests
 import shutil
 import json
 from humaneval_utils import read_problems
+from tqdm import tqdm
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
@@ -75,9 +76,8 @@ print('Prompt numbers to test:', prompt_numbers)
 
 # Call the function from llm.py with the necessary arguments
 print("Running llm tests...")
-for prompt_number in prompt_numbers:
+for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
     llm.run_llm_tests(args_dict['model'], args_dict['dataset'], prompt_number, args_dict['num_runs'], args_dict['test_type'], args_dict['delta_method'], df)
-    print('Prompts completed:', round((prompt_numbers.index(prompt_number) + 1) / len(prompt_numbers) * 100, 2), '%')
 
 # run analysis
 print("Running analysis...")
