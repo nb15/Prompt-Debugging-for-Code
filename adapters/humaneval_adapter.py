@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Iterable, Dict
 import gzip
 import json
+import random
 
 def read_problems(evalset_file: str) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
@@ -32,12 +33,15 @@ def extract_humaneval_docstring(code, function_header, stop_words):
             text = text.split(stop_word)[0]
     return text.strip().replace('"', '')
 
-def extract_humaneval_test_list(test, function_header):
+def extract_humaneval_test_list(test, entry_point):
     test_list = [i.strip() for i in test.split('\n') if 'assert' in i]
-    # parse function header between 'def ' and '('
-    function_name = function_header.split('def ')[1].split('(')[0]
-    # replace 'candidate' with function name for every test in test_list
-    test_list = [i.replace('candidate', function_name) for i in test_list]
+    test_list = [i.replace('candidate', entry_point) for i in test_list]
+    return test_list
+
+def extract_humaneval_plus_test_list(entry_point, plus_input, expected_output):
+    def prepare_input(inp):
+        return ', '.join([str(i) for i in inp])
+    test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
     return test_list
 
 def generate_deltas(df, prompt_index, delta_method, test_type):
@@ -49,17 +53,25 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     :param delta_method: Method for generating deltas ('permutations' or 'combinations').
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
-    df = df[['prompt', 'entry_point', 'test']].copy()
+    if test_type == 'evalplus':
+        df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus']].copy()
+        plus_input = df.iloc[prompt_index]['plus_input']
+        expected_output = df.iloc[prompt_index]['plus']
+    else:
+        df = df[['prompt', 'entry_point', 'test']].copy()
+        test = str(df.iloc[prompt_index]['test'])
 
     # Extracting and ensuring the data types
     prompt = str(df.iloc[prompt_index]['prompt'])
     entry_point = str(df.iloc[prompt_index]['entry_point'])
-    test = str(df.iloc[prompt_index]['test'])
 
     function_header = str(general_adapter.extract_function_header(prompt, entry_point))
     docstring = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
-    # test_list = None if test_type == 'new' else prompt.split(docstring)[1].strip()
-    test_list = None if test_type == 'new' else extract_humaneval_test_list(test, function_header)
+    if test_type == 'evalplus':
+        test_list = extract_humaneval_plus_test_list(entry_point, plus_input, expected_output)
+        test_list = random.sample(test_list, 5) # Randomly sample 5 test cases
+    else:
+        test_list = None if test_type == 'new' else extract_humaneval_test_list(test, entry_point)
 
     # Define delta components as a dictionary
     delta_components = {

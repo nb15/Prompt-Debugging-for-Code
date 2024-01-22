@@ -6,3 +6,4 @@ timeout_decorator
 llama-cpp-python
 transformers
 torch
+evalplus

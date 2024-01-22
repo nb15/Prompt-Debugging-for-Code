@@ -9,6 +9,8 @@ import shutil
 import json
 from tqdm import tqdm
 from adapters import humaneval_adapter
+from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash
+from evalplus.evaluate import get_groundtruth
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
@@ -16,7 +18,7 @@ parser.add_argument("-m", "--model", help="LLM model name")
 parser.add_argument("-d", "--dataset", help="Dataset: mbpp or humaneval")
 parser.add_argument("-p", "--num_prompts", help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", help="Number of runs for prompt")
-parser.add_argument("-t", "--test_type", help="Type of test to run: new or original")
+parser.add_argument("-t", "--test_type", help="Type of test to run: new, original, or evalplus")
 parser.add_argument("-g", "--delta_grouping", help="Grouping for generating delta: permutations or combinations")
 args = parser.parse_args()
 
@@ -52,7 +54,16 @@ if args_dict['dataset'] == 'mbpp':
         print('New test cases already exist. Skipping generation...')
         df = pd.read_json('mbpp_new_test_cases.jsonl', lines=True)
 elif args_dict['dataset'] == 'humaneval':
-    problems = humaneval_adapter.read_problems("datasets/HumanEval.jsonl.gz")
+    if args_dict['test_type'] == 'evalplus':
+        problems = get_human_eval_plus()
+        dataset_hash = get_human_eval_plus_hash()
+        expected_output = get_groundtruth(problems, dataset_hash, [])
+        for problem in problems:
+            expected_output_keys = [*expected_output[problem]]
+            for key in expected_output_keys:
+                problems[problem][key] = expected_output[problem][key]
+    else:    
+        problems = humaneval_adapter.read_problems("datasets/HumanEval.jsonl.gz")
     df = pd.DataFrame.from_dict(problems, orient='index')
     df = df.reset_index(drop=True)
 
