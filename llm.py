@@ -3,7 +3,7 @@ import os
 import importlib.util
 import timeout_decorator
 import models
-from adapters import general_adapter, mbpp_adapter
+from adapters import general_adapter, mbpp_adapter, humaneval_adapter
 
 # Define a timeout duration for test cases
 TEST_CASE_TIMEOUT = 30  # Example: 30 seconds
@@ -84,7 +84,7 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_metho
     :param model: The model to use for generating code.
     :param prompt_index: Index of prompt to test.
     :param num_runs: Number of times to run the tests.
-    :param test_type: The type of test to run ('new' or other).
+    :param test_type: The type of test to run ('new' or 'original').
     :param delta_method: The method for generating deltas ('permutations' or 'combinations').
     :param df: A DataFrame containing code and test cases.
     """
@@ -94,6 +94,8 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_metho
     # Generate deltas
     if dataset == 'mbpp':
         deltas, delta_components_info, test_list = mbpp_adapter.generate_deltas(df, prompt_index, delta_method, test_type)
+    elif dataset == 'humaneval':
+        deltas, delta_components_info, test_list = humaneval_adapter.generate_deltas(df, prompt_index, delta_method, test_type)
 
     # Initialize results dictionary
     results = {f'delta_{i}': [] for i in range(len(deltas))}

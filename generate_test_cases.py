@@ -84,9 +84,3 @@ def run_generate_new_tests(df):
     :return: DataFrame updated with new tests.
     """
     return generate_new_tests(df)
-
-if __name__ == '__main__':
-    # df = pd.read_json('mbpp.jsonl', lines=True)
-    # df = run_generate_new_tests(df)
-    # df.to_json('mbpp_new_tests.jsonl', orient='records', lines=True)
-    pass

@@ -7,6 +7,7 @@ import os
 from generate_test_cases import run_generate_new_tests
 import shutil
 import json
+from humaneval_utils import read_problems
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
@@ -34,9 +35,6 @@ args_dict = {
     'delta_method': args.delta_grouping
 }
 
-# Original JSON file
-df_orig = pd.read_json('datasets/mbpp.jsonl', lines=True)
-
 # Check if the folder 'generated_code_files' exists and delete if it does
 print('Deleting generated_code_files folder...')
 if os.path.exists('generated_code_files'):
@@ -46,11 +44,16 @@ if args_dict['dataset'] == 'mbpp':
     # Check if the 'mbpp_new_test_cases.jsonl' exists
     if not os.path.exists('mbpp_new_test_cases.jsonl'):
         print('Generating new test cases...')
+        df_orig = pd.read_json('datasets/mbpp.jsonl', lines=True)
         df = run_generate_new_tests(df_orig)
         df.to_json('mbpp_new_test_cases.jsonl', orient='records', lines=True)
     else:
         print('New test cases already exist. Skipping generation...')
         df = pd.read_json('mbpp_new_test_cases.jsonl', lines=True)
+elif args_dict['dataset'] == 'humaneval':
+    problems = read_problems("datasets/HumanEval.jsonl.gz")
+    df = pd.DataFrame.from_dict(problems, orient='index')
+    df = df.reset_index(drop=True)
 
 # Determine prompt numbers to test
 if isinstance(args_dict['num_prompts'], list):
@@ -61,8 +64,12 @@ else:
     prompt_numbers = []
     while len(prompt_numbers) < args_dict['num_prompts']:
         prompt_number = random.randint(0, len(df) - 1)
-        if prompt_number not in prompt_numbers and df['new_test_list'][prompt_number] != 'Error generating new test cases':
-            prompt_numbers.append(prompt_number)
+        if prompt_number not in prompt_numbers:
+            if args_dict['dataset'] == 'mbpp':
+                if df['new_test_list'][prompt_number] != 'Error generating new test cases':
+                    prompt_numbers.append(prompt_number)
+            else:
+                prompt_numbers.append(prompt_number)
 
 print('Prompt numbers to test:', prompt_numbers)
 
