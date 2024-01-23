@@ -84,7 +84,7 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_metho
     :param model: The model to use for generating code.
     :param prompt_index: Index of prompt to test.
     :param num_runs: Number of times to run the tests.
-    :param test_type: The type of test to run ('new' or 'original').
+    :param test_type: The type of test to run ('original' or 'evalplus').
     :param delta_method: The method for generating deltas ('permutations' or 'combinations').
     :param df: A DataFrame containing code and test cases.
     """

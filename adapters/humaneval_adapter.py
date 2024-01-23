@@ -1,6 +1,5 @@
 from . import general_adapter
 import itertools
-import pandas as pd
 from typing import Iterable, Dict
 import gzip
 import json
@@ -8,7 +7,6 @@ import random
 
 def read_problems(evalset_file: str) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
-
 
 def stream_jsonl(filename: str) -> Iterable[Dict]:
     """
@@ -71,7 +69,7 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
         test_list = extract_humaneval_plus_test_list(entry_point, plus_input, expected_output)
         test_list = random.sample(test_list, 5) # Randomly sample 5 test cases
     else:
-        test_list = None if test_type == 'new' else extract_humaneval_test_list(test, entry_point)
+        test_list = extract_humaneval_test_list(test, entry_point)
 
     # Define delta components as a dictionary
     delta_components = {

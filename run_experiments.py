@@ -4,7 +4,6 @@ import llm
 from analyze_results import run_analysis
 import argparse
 import os
-from generate_test_cases import run_generate_new_tests
 import shutil
 import json
 from tqdm import tqdm
@@ -18,7 +17,7 @@ parser.add_argument("-m", "--model", help="LLM model name")
 parser.add_argument("-d", "--dataset", help="Dataset: mbpp or humaneval")
 parser.add_argument("-p", "--num_prompts", help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", help="Number of runs for prompt")
-parser.add_argument("-t", "--test_type", help="Type of test to run: new, original, or evalplus")
+parser.add_argument("-t", "--test_type", help="Type of test to run: original, or evalplus")
 parser.add_argument("-g", "--delta_grouping", help="Grouping for generating delta: permutations or combinations")
 args = parser.parse_args()
 
@@ -44,15 +43,7 @@ if os.path.exists('generated_code_files'):
     shutil.rmtree('generated_code_files')
 
 if args_dict['dataset'] == 'mbpp':
-    # Check if the 'mbpp_new_test_cases.jsonl' exists
-    if not os.path.exists('mbpp_new_test_cases.jsonl'):
-        print('Generating new test cases...')
-        df_orig = pd.read_json('datasets/mbpp.jsonl', lines=True)
-        df = run_generate_new_tests(df_orig)
-        df.to_json('mbpp_new_test_cases.jsonl', orient='records', lines=True)
-    else:
-        print('New test cases already exist. Skipping generation...')
-        df = pd.read_json('mbpp_new_test_cases.jsonl', lines=True)
+    df = pd.read_json('datasets/mbpp.jsonl', lines=True)
 elif args_dict['dataset'] == 'humaneval':
     if args_dict['test_type'] == 'evalplus':
         problems = get_human_eval_plus()
@@ -77,11 +68,7 @@ else:
     while len(prompt_numbers) < args_dict['num_prompts']:
         prompt_number = random.randint(0, len(df) - 1)
         if prompt_number not in prompt_numbers:
-            if args_dict['dataset'] == 'mbpp':
-                if df['new_test_list'][prompt_number] != 'Error generating new test cases':
-                    prompt_numbers.append(prompt_number)
-            else:
-                prompt_numbers.append(prompt_number)
+            prompt_numbers.append(prompt_number)
 
 print('Prompt numbers to test:', prompt_numbers)
 
