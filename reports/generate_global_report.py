@@ -279,7 +279,7 @@ def calculate_average_variance(variances):
     return average_variances
 
 
-def generate_global_pdf_report(df, file_path, total_prompts, runs_per_prompt):
+def generate_report(df, file_path, total_prompts, runs_per_prompt):
     """
     Generate a global PDF report from the aggregated DataFrame.
 

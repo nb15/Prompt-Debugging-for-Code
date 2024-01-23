@@ -1,7 +1,7 @@
 import os
 import pandas as pd
-from generate_prompt_report import generate_pdf_report
-from generate_global_report import generate_global_pdf_report
+from reports import generate_prompt_report
+from reports import generate_global_report
 
 def process_and_aggregate_csv_files(base_path, perform_individual_analysis):
     """
@@ -23,7 +23,7 @@ def process_and_aggregate_csv_files(base_path, perform_individual_analysis):
                         if perform_individual_analysis:
                             prompt_name = dir_name.split('_')[-1]
                             pdf_file_path = os.path.join(full_path, f'prompt_{prompt_name}_analysis.pdf')
-                            generate_pdf_report(df, pdf_file_path, prompt_name)
+                            generate_prompt_report.generate_report(df, pdf_file_path, prompt_name)
                             print(f'Generated PDF report for prompt {prompt_name} at {pdf_file_path}')
                         df['Prompt'] = dir_name  # Adding a column to identify the prompt
                         all_data.append(df)
@@ -39,5 +39,5 @@ def run_analysis(total_prompts, runs_per_prompt):
 
     # Generate global report
     global_report_path = os.path.join(base_folder_path, 'global_analysis_report.pdf')
-    generate_global_pdf_report(global_data, global_report_path, total_prompts, runs_per_prompt)
+    generate_global_report.generate_report(global_data, global_report_path, total_prompts, runs_per_prompt)
     print(f'Generated global analysis report at {global_report_path}')

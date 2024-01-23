@@ -218,7 +218,7 @@ def calculate_overall_stats(df):
         'error_type_counts_overall': error_type_counts_overall
     }
 
-def generate_pdf_report(df, file_path, prompt_name):
+def generate_report(df, file_path, prompt_name):
     """
     Generate a PDF report from the DataFrame.
 
