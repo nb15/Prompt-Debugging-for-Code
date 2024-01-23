@@ -24,6 +24,20 @@ def stream_jsonl(filename: str) -> Iterable[Dict]:
                 if any(not x.isspace() for x in line):
                     yield json.loads(line)
 
+def extract_humaneval_examples(code, function_header, start_words):
+    text = code.split(function_header)[1].strip()
+    examples_text = ""
+    recording = False
+
+    for line in text.split('\n'):
+        if any(start_word in line for start_word in start_words):
+            recording = True  
+        elif recording and (line.strip() == '' or line.strip().startswith('"""')):
+            break
+        if recording:
+            examples_text += line + '\n'
+    return examples_text.strip()
+
 def extract_humaneval_docstring(code, function_header, stop_words):
     text = code.split(function_header)[1].strip()
     for stop_word in stop_words:
@@ -65,6 +79,7 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
 
     function_header = str(general_adapter.extract_function_header(prompt, entry_point))
     docstring = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
+    examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
     if test_type == 'evalplus':
         test_list = extract_humaneval_plus_test_list(entry_point, plus_input, expected_output)
         test_list = random.sample(test_list, 5) # Randomly sample 5 test cases
@@ -75,14 +90,14 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     delta_components = {
         'docstring': docstring,
         'function_header': function_header,
-        'test_list': str(test_list)
+        'examples': examples
     }
 
     # Choose between permutations and combinations
     delta_generator = itertools.permutations if delta_method == 'permutations' else itertools.combinations
 
     # Generate all permutations or combinations of the deltas
-    delta_elements = ['docstring', 'function_header', 'test_list']
+    delta_elements = ['docstring', 'function_header', 'examples']
     all_deltas = []
     for r in range(1, len(delta_elements) + 1):
         all_deltas.extend(delta_generator(delta_elements, r))
