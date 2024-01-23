@@ -44,14 +44,13 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     delta_components = {
         'docstring': docstring,
         'function_header': function_header,
-        'test_list': str(test_list)
     }
 
     # Choose between permutations and combinations
     delta_generator = itertools.permutations if delta_method == 'permutations' else itertools.combinations
 
     # Generate all permutations or combinations of the deltas
-    delta_elements = ['docstring', 'function_header', 'test_list']
+    delta_elements = ['docstring', 'function_header']
     all_deltas = []
     for r in range(1, len(delta_elements) + 1):
         all_deltas.extend(delta_generator(delta_elements, r))
