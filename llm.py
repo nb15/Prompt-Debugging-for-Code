@@ -77,14 +77,13 @@ def run_test_cases_for_file(file_path, test_list):
     except Exception as e:
         return ('Fail', f'Runtime Error - {e.__class__.__name__}')
 
-def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_method, df):
+def run_llm_tests(model, dataset, prompt_index, num_runs, delta_method, df):
     """
     Run the Language Learning Model (LLM) tests.
 
     :param model: The model to use for generating code.
     :param prompt_index: Index of prompt to test.
     :param num_runs: Number of times to run the tests.
-    :param test_type: The type of test to run ('original' or 'evalplus').
     :param delta_method: The method for generating deltas ('permutations' or 'combinations').
     :param df: A DataFrame containing code and test cases.
     """
@@ -93,9 +92,9 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, test_type, delta_metho
 
     # Generate deltas
     if dataset == 'mbpp':
-        deltas, delta_components_info, test_list = mbpp_adapter.generate_deltas(df, prompt_index, delta_method, test_type)
+        deltas, delta_components_info, test_list = mbpp_adapter.generate_deltas(df, prompt_index, delta_method)
     elif dataset == 'humaneval':
-        deltas, delta_components_info, test_list = humaneval_adapter.generate_deltas(df, prompt_index, delta_method, test_type)
+        deltas, delta_components_info, test_list = humaneval_adapter.generate_deltas(df, prompt_index, delta_method)
 
     # Initialize results dictionary
     results = {f'delta_{i}': [] for i in range(len(deltas))}

@@ -45,18 +45,13 @@ def extract_humaneval_docstring(code, function_header, stop_words):
             text = text.split(stop_word)[0]
     return text.strip().replace('"', '')
 
-def extract_humaneval_test_list(test, entry_point):
-    test_list = [i.strip() for i in test.split('\n') if 'assert' in i]
-    test_list = [i.replace('candidate', entry_point) for i in test_list]
-    return test_list
-
-def extract_humaneval_plus_test_list(entry_point, plus_input, expected_output):
+def extract_humaneval_test_list(entry_point, plus_input, expected_output):
     def prepare_input(inp):
         return ', '.join([str(i) for i in inp])
     test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
     return test_list
 
-def generate_deltas(df, prompt_index, delta_method, test_type):
+def generate_deltas(df, prompt_index, delta_method):
     """
     Generate deltas based on the provided DataFrame, prompt index, and delta method.
 
@@ -65,13 +60,9 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     :param delta_method: Method for generating deltas ('permutations' or 'combinations').
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
-    if test_type == 'evalplus':
-        df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus']].copy()
-        plus_input = df.iloc[prompt_index]['plus_input']
-        expected_output = df.iloc[prompt_index]['plus']
-    else:
-        df = df[['prompt', 'entry_point', 'test']].copy()
-        test = str(df.iloc[prompt_index]['test'])
+    df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus']].copy()
+    plus_input = df.iloc[prompt_index]['plus_input']
+    expected_output = df.iloc[prompt_index]['plus']
 
     # Extracting and ensuring the data types
     prompt = str(df.iloc[prompt_index]['prompt'])
@@ -80,10 +71,7 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     function_header = str(general_adapter.extract_function_header(prompt, entry_point))
     docstring = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
     examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
-    if test_type == 'evalplus':
-        test_list = extract_humaneval_plus_test_list(entry_point, plus_input, expected_output)
-    else:
-        test_list = extract_humaneval_test_list(test, entry_point)
+    test_list = extract_humaneval_test_list(entry_point, plus_input, expected_output)
 
     # Define delta components as a dictionary
     delta_components = {
