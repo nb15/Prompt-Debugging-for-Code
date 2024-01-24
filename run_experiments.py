@@ -8,8 +8,9 @@ import shutil
 import json
 from tqdm import tqdm
 from adapters import humaneval_adapter
-from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash
+from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash, get_mbpp_plus, get_mbpp_plus_hash
 from evalplus.evaluate import get_groundtruth
+from evalplus.eval._special_oracle import MBPP_OUTPUT_NOT_NONE_TASKS
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
@@ -43,7 +44,18 @@ if os.path.exists('generated_code_files'):
     shutil.rmtree('generated_code_files')
 
 if args_dict['dataset'] == 'mbpp':
-    df = pd.read_json('datasets/mbpp.jsonl', lines=True)
+    if args_dict['test_type'] == 'evalplus':
+        problems = get_mbpp_plus()
+        dataset_hash = get_mbpp_plus_hash()
+        expected_output = get_groundtruth(problems, dataset_hash, MBPP_OUTPUT_NOT_NONE_TASKS)
+        for problem in problems:
+            expected_output_keys = [*expected_output[problem]]
+            for key in expected_output_keys:
+                problems[problem][key] = expected_output[problem][key]
+        df = pd.DataFrame.from_dict(problems, orient='index')
+        df = df.reset_index(drop=True)
+    else:
+        df = pd.read_json('datasets/mbpp.jsonl', lines=True)
 elif args_dict['dataset'] == 'humaneval':
     if args_dict['test_type'] == 'evalplus':
         problems = get_human_eval_plus()

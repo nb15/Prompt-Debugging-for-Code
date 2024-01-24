@@ -22,6 +22,24 @@ def parse_function_inputs(input_str):
 
     return inputs
 
+def extract_mbpp_plus_examples(prompt, start_word):
+    prompt = prompt.replace('"""', '')
+    start_pos = prompt.find(start_word)
+    examples = prompt[start_pos:].strip()
+    return examples
+
+def extract_mbpp_plus_docstring(prompt, stop_word):
+    prompt = prompt.replace('"""', '')
+    stop_pos = prompt.find(stop_word)
+    docstring = prompt[:stop_pos].strip()
+    return docstring
+
+def extract_mbpp_plus_test_list(entry_point, plus_input, expected_output):
+    def prepare_input(inp):
+        return ', '.join([str(i) for i in inp])
+    test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
+    return test_list
+
 def generate_deltas(df, prompt_index, delta_method, test_type):
     """
     Generate deltas based on the provided DataFrame, prompt index, and delta method.
@@ -31,26 +49,37 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     :param delta_method: Method for generating deltas ('permutations' or 'combinations').
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
-    df = df[['text', 'code', 'test_list']].copy()
-    df['function_header'] = df['code'].apply(general_adapter.extract_function_header)
+    if test_type == 'evalplus':
+        df = df[['prompt', 'entry_point', 'plus_input', 'plus']].copy()
+        plus_input = df.iloc[prompt_index]['plus_input']
+        expected_output = df.iloc[prompt_index]['plus']
+        prompt = str(df.iloc[prompt_index]['prompt'])
+        entry_point = str(df.iloc[prompt_index]['entry_point'])
+    else:
+        df = df[['text', 'code', 'test_list']].copy()
+        docstring = str(df.iloc[prompt_index]['text'])
+        code = str(df.iloc[prompt_index]['code'])
+        function_header = str(general_adapter.extract_function_header(code))
 
     # Extracting and ensuring the data types
-    docstring = str(df.iloc[prompt_index]['text'])
-    code = str(df.iloc[prompt_index]['code'])
-    function_header = str(general_adapter.extract_function_header(code))
-    test_list = df.iloc[prompt_index]['test_list']
+    docstring = extract_mbpp_plus_docstring(prompt, 'assert')
+    examples = extract_mbpp_plus_examples(prompt, 'assert')
+    if test_type == 'evalplus':
+        test_list = extract_mbpp_plus_test_list(entry_point, plus_input, expected_output)
+    else:
+        test_list = df.iloc[prompt_index]['test_list']
 
     # Define delta components as a dictionary
     delta_components = {
         'docstring': docstring,
-        'function_header': function_header,
+        'examples': examples
     }
 
     # Choose between permutations and combinations
     delta_generator = itertools.permutations if delta_method == 'permutations' else itertools.combinations
 
     # Generate all permutations or combinations of the deltas
-    delta_elements = ['docstring', 'function_header']
+    delta_elements = ['docstring', 'examples']
     all_deltas = []
     for r in range(1, len(delta_elements) + 1):
         all_deltas.extend(delta_generator(delta_elements, r))

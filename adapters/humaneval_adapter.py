@@ -82,7 +82,6 @@ def generate_deltas(df, prompt_index, delta_method, test_type):
     examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
     if test_type == 'evalplus':
         test_list = extract_humaneval_plus_test_list(entry_point, plus_input, expected_output)
-        test_list = random.sample(test_list, 5) # Randomly sample 5 test cases
     else:
         test_list = extract_humaneval_test_list(test, entry_point)
 
