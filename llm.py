@@ -85,10 +85,14 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, delta_method, df):
     :param prompt_index: Index of prompt to test.
     :param num_runs: Number of times to run the tests.
     :param delta_method: The method for generating deltas ('permutations' or 'combinations').
+    :param evaluation: The evaluation method ('evalplus' or 'runtime').
     :param df: A DataFrame containing code and test cases.
     """
     output_directory = f'generated_code_files/prompt_{prompt_index}'
     os.makedirs(output_directory, exist_ok=True)
+
+    # Get task id
+    task_id = df.iloc[prompt_index]['task_id']
 
     # Generate deltas
     if dataset == 'mbpp':
@@ -118,17 +122,21 @@ def run_llm_tests(model, dataset, prompt_index, num_runs, delta_method, df):
             with open(file_name, 'r') as file:
                 code = file.read()
             all_results.append({
+                'Task ID': task_id,
                 'Delta': delta_key,
                 'Pass/Fail': 'Pass' if test_result == 'Pass' else 'Fail',
                 'Error Type': error_type,
                 'Run Index': run_index + 1,
                 'Code': code,
-                'Components': components  # New field for components
+                'Components': components
             })
 
     results_df = pd.DataFrame(all_results)
     results_df['Passed In All Runs'] = results_df.groupby('Delta')['Pass/Fail'].transform(lambda x: 'Yes' if all(x == 'Pass') else 'No')
 
     csv_filename = f'{output_directory}/results_prompt_{prompt_index}.csv'
+    jsonl_filename = f'{output_directory}/results_prompt_{prompt_index}.jsonl'
     results_df.to_csv(csv_filename, index=False)
     print(f"CSV file created: {csv_filename}")
+    results_df.to_json(jsonl_filename, orient='records', lines=True)
+    print(f"JSONL file created: {jsonl_filename}")

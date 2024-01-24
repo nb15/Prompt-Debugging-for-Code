@@ -7,7 +7,6 @@ import os
 import shutil
 import json
 from tqdm import tqdm
-from adapters import humaneval_adapter
 from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash, get_mbpp_plus, get_mbpp_plus_hash
 from evalplus.evaluate import get_groundtruth
 from evalplus.eval._special_oracle import MBPP_OUTPUT_NOT_NONE_TASKS
@@ -19,6 +18,7 @@ parser.add_argument("-d", "--dataset", help="Dataset: mbpp or humaneval")
 parser.add_argument("-p", "--num_prompts", help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", help="Number of runs for prompt")
 parser.add_argument("-g", "--delta_grouping", help="Grouping for generating delta: permutations or combinations")
+parser.add_argument("-e", "--evaluation", help="Evaluate using evalplus or runtime")
 args = parser.parse_args()
 
 # Function to parse the num_prompts argument
@@ -33,7 +33,8 @@ args_dict = {
     'dataset': args.dataset,
     'num_prompts': parse_num_prompts(args.num_prompts),
     'num_runs': int(args.num_runs),
-    'delta_method': args.delta_grouping
+    'delta_method': args.delta_grouping,
+    'evaluation': args.evaluation
 }
 
 # Check if the folder 'generated_code_files' exists and delete if it does
@@ -82,4 +83,4 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
 
 # run analysis
 print("Running analysis...")
-run_analysis(len(prompt_numbers), args_dict['num_runs'])
+run_analysis(len(prompt_numbers), args_dict['num_runs'], args_dict['evaluation'])
