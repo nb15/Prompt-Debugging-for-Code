@@ -1,9 +1,8 @@
 #from openai import OpenAI
 #import google.generativeai as genai
 #import google_api_key
-from llama_cpp import Llama
+#from llama_cpp import Llama
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
-from transformers import BartForConditionalGeneration
 import torch, os
 
 #genai.configure(api_key = google_api_key.GOOGLE_API_KEY)
@@ -45,16 +44,16 @@ def generate_google_output(delta, llm):
         print(response.prompt_feedback)
     return answer
 
-def generate_local_llm_output(delta, llm):
-    question = f"{delta}"
-    client = Llama(model_path=llm)
-    response = client(
-        question,
-        max_tokens=150,
-        echo=True
-    )
-    answer = response["choices"][0]["text"]
-    return answer
+# def generate_local_llm_output(delta, llm):
+#     question = f"{delta}"
+#     client = Llama(model_path=llm)
+#     response = client(
+#         question,
+#         max_tokens=150,
+#         echo=True
+#     )
+#     answer = response["choices"][0]["text"]
+#     return answer
 
 
 def generate_wizardcoder_prompt(input):
@@ -185,8 +184,8 @@ def generate_model_output(delta, model):
         return generate_openai_output(delta, llm)
     elif model.startswith('Google'):
         return generate_google_output(delta, llm)
-    elif model.startswith('Mistral') or model.startswith('CodeLlama'):
-        return generate_local_llm_output(delta, llm)
+    # elif model.startswith('Mistral') or model.startswith('CodeLlama'):
+    #     return generate_local_llm_output(delta, llm)
     elif model.startswith('hf'):
         return generate_huggingface_output(delta, llm)
     else:
