@@ -19,6 +19,7 @@ model_dict = {
     'hf_incoder_1B': "facebook/incoder-1B",
     'hf_starcoderbase_1B': 'bigcode/starcoderbase-1b',
     'hf_wizardcoder_15B': 'WizardLM/WizardCoder-15B-V1.0',
+    'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
 }
 
 def generate_openai_output(delta, llm):
@@ -76,9 +77,9 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
     if torch.cuda.is_available():
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            #load_in_8bit = load_8bit,
-            #torch_dtype = torch.float16,
-            torch_dtype = "auto",
+            load_in_8bit = load_8bit,
+            torch_dtype = torch.float16 if load_8bit else "auto",
+            #torch_dtype = "auto",
             device_map = "auto"
         )
     else:
