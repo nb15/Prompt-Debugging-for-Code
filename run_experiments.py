@@ -14,7 +14,7 @@ from evalplus.eval._special_oracle import MBPP_OUTPUT_NOT_NONE_TASKS
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--model", default='hf_starcoderbase_1B',help="LLM model name")
+parser.add_argument("-m", "--model", default='hf_wizardcoder_15B',help="LLM model name")
 parser.add_argument("-d", "--dataset", default='humaneval', help="Dataset", choices=['humaneval', 'mbpp'])
 parser.add_argument("-p", "--num_prompts", default=-1, help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt")
@@ -22,7 +22,7 @@ parser.add_argument("-g", "--delta_grouping", default=None, help="Grouping for g
 parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate using evalplus or runtime")
 
 
-parser.add_argument("-t", "--temperature", type=float, default=0.8)
+parser.add_argument("-t", "--temperature", type=float, default=0.0)
 parser.add_argument("--max_len", type=int, default=2048)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')

@@ -19,6 +19,7 @@ model_dict = {
     'CodeLlama_13B_Python': 'codellama-13b-python-ggml-model-f16.bin',
     'hf_incoder_1B': "facebook/incoder-1B",
     'hf_starcoderbase_1B': 'bigcode/starcoderbase-1b',
+    'hf_wizardcoder_15B': 'WizardLM/WizardCoder-15B-V1.0',
 }
 
 def generate_openai_output(delta, llm):
