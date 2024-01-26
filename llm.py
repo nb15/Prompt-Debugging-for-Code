@@ -77,6 +77,23 @@ def run_test_cases_for_file(file_path, test_list):
     except Exception as e:
         return ('Fail', f'Runtime Error - {e.__class__.__name__}')
 
+
+def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_index, num_runs, delta_method, df, max_len):
+    
+    all_results = []
+
+    if dataset == 'mbpp':
+        deltas, delta_components_info, test_list = mbpp_adapter.generate_deltas(df, prompt_index, delta_method)
+    elif dataset == 'humaneval':
+        deltas = humaneval_adapter.generate_deltas(df, prompt_index, delta_method)    
+
+    for run_index in range(num_runs):
+        for i, delta in enumerate(deltas):
+            trucated_seq, raw_seq = models.generate_wizardcode_output(delta, model, tokenizer, generation_config, max_len)
+            all_results.append(dict(task_id = f'HumanEval/{prompt_index}', completion = trucated_seq, all_code = raw_seq))
+
+    return all_results
+
 def run_llm_tests(model, dataset, prompt_index, num_runs, delta_method, df):
     """
     Run the Language Learning Model (LLM) tests.

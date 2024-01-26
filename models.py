@@ -1,11 +1,12 @@
-from openai import OpenAI
-import google.generativeai as genai
-import google_api_key
+#from openai import OpenAI
+#import google.generativeai as genai
+#import google_api_key
 from llama_cpp import Llama
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from transformers import BartForConditionalGeneration
 import torch, os
 
-genai.configure(api_key = google_api_key.GOOGLE_API_KEY)
+#genai.configure(api_key = google_api_key.GOOGLE_API_KEY)
 
 # Models mapping
 model_dict = {
@@ -17,6 +18,7 @@ model_dict = {
     'CodeLlama_7B_Python': 'codellama-7b-python-ggml-model-f16.bin',
     'CodeLlama_13B_Python': 'codellama-13b-python-ggml-model-f16.bin',
     'hf_incoder_1B': "facebook/incoder-1B",
+    'hf_starcoderbase_1B': 'bigcode/starcoderbase-1b',
 }
 
 def generate_openai_output(delta, llm):
@@ -53,6 +55,80 @@ def generate_local_llm_output(delta, llm):
     answer = response["choices"][0]["text"]
     return answer
 
+
+def generate_wizardcoder_prompt(input):
+    INSTRUCTION = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+
+### Instruction:
+Create a Python script for this problem:
+{input}
+
+### Response:"""
+    return INSTRUCTION
+
+
+def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_8bit=True):
+    model_name = model_dict[llm]
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if torch.cuda.is_available():
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            #load_in_8bit = load_8bit,
+            #torch_dtype = torch.float16,
+            torch_dtype = "auto",
+            device_map = "auto"
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map={"": device},
+            torch_dtype=torch.bfloat16,
+        )        
+    model.config.pad_token_id = tokenizer.pad_token_id
+
+    if not load_8bit:
+        model.half()
+    
+    model.eval()
+    model = torch.compile(model)
+
+    generation_config = GenerationConfig(
+        pad_token_id=tokenizer.pad_token_id,
+        do_sample=False if greedy_decode else True,
+        temperature=temperature,
+        max_length=max_len,
+        num_return_sequences=1,
+        eos_token_id=tokenizer.eos_token_id,
+        top_p=0.95
+    )
+
+    return model, tokenizer, generation_config
+
+
+
+def generate_wizardcode_output(delta, model, tokenizer, generation_config, max_len):
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    prompt = delta.replace('    ', '\t')
+    prompt = [generate_wizardcoder_prompt(prompt)]
+    
+    encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
+    temp = model(**encoding, output_hidden_states=True)
+    model_out = model.generate(
+        **encoding,
+        generation_config = generation_config
+    )
+
+    decoded_seq = tokenizer.batch_decode(model_out, skip_special_tokens = True)[0]
+    trucated_seq = decoded_seq.split("### Response:")[1]
+    trucated_seq = trucated_seq.replace('\t', '    ')
+    raw_seq = decoded_seq.replace('\t', '    ')
+
+    return trucated_seq, raw_seq
 
 def generate_huggingface_output(delta, llm):
     tokenizer = AutoTokenizer.from_pretrained(llm)
