@@ -71,7 +71,7 @@ def generate_deltas(df, prompt_index, delta_method):
     function_header = str(general_adapter.extract_function_header(prompt, entry_point))
     docstring = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
     examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
-    test_list = extract_humaneval_test_list(entry_point, plus_input, expected_output)
+    #test_list = extract_humaneval_test_list(entry_point, plus_input, expected_output)
     nomalized_function_header = function_header.replace(entry_point, 'func')
 
     return [f'{prompt}',

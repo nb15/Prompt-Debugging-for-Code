@@ -95,14 +95,18 @@ print("Running llm tests...")
 final_results = []
 
 for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
-    if args.evaluation == 'runtime':
-        llm.run_llm_tests(args.model, args.dataset, prompt_number, args.num_runs, args.delta_grouping, df)
-    else:
-        if args.save_embds:
-            pass
+    try:
+        if args.evaluation == 'runtime':
+            llm.run_llm_tests(args.model, args.dataset, prompt_number, args.num_runs, args.delta_grouping, df)
         else:
-            final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
-                                                args.dataset, prompt_number, args.num_runs, args.delta_grouping, df, args.max_len)
+            if args.save_embds:
+                pass
+            else:
+                final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
+                                                    args.dataset, prompt_number, args.num_runs, args.delta_grouping, df, args.max_len)
+    except:
+        print("Error in Prompt: ", prompt_number)
+        pass
 
 result_file = f'{args.dataset}_{args.model}_generated_code.jsonl'
 write_jsonl(result_file, final_results)
