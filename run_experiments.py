@@ -12,9 +12,12 @@ from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash, get_mbp
 from evalplus.evaluate import get_groundtruth
 from evalplus.eval._special_oracle import MBPP_OUTPUT_NOT_NONE_TASKS
 
+import warnings
+warnings.filterwarnings("ignore")
+
 # Argument parser setup
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--model", default='hf_wizardcoder_15B',help="LLM model name")
+parser.add_argument("-m", "--model", default='hf_wizardcoder_python_7B',help="LLM model name")
 parser.add_argument("-d", "--dataset", default='humaneval', help="Dataset", choices=['humaneval', 'mbpp'])
 parser.add_argument("-p", "--num_prompts", default=-1, help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt")
@@ -101,7 +104,7 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
             final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
                                                 args.dataset, prompt_number, args.num_runs, args.delta_grouping, df, args.max_len)
 
-result_file = f'{args.dataset}_generated_code.jsonl'
+result_file = f'{args.dataset}_{args.model}_generated_code.jsonl'
 write_jsonl(result_file, final_results)
 
 

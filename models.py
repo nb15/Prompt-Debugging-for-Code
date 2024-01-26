@@ -2,7 +2,7 @@
 #import google.generativeai as genai
 #import google_api_key
 #from llama_cpp import Llama
-from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig, BitsAndBytesConfig
 import torch, os
 
 #genai.configure(api_key = google_api_key.GOOGLE_API_KEY)
@@ -74,12 +74,21 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+    )
+
     if torch.cuda.is_available():
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            load_in_8bit = load_8bit,
-            torch_dtype = torch.float16 if load_8bit else "auto",
-            #torch_dtype = "auto",
+            #load_in_8bit = load_8bit,
+            #quantization_config=bnb_config,
+            trust_remote_code=True,
+            #torch_dtype = torch.float16 if load_8bit else "auto",
+            torch_dtype = "auto",
             device_map = "auto"
         )
     else:
@@ -89,16 +98,16 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
             torch_dtype=torch.bfloat16,
         )        
     model.config.pad_token_id = tokenizer.pad_token_id
-
+    print("Loaded Model")
     if not load_8bit:
         model.half()
     
     model.eval()
-    model = torch.compile(model)
+    #model = torch.compile(model)
 
     generation_config = GenerationConfig(
         pad_token_id=tokenizer.pad_token_id,
-        do_sample=False if greedy_decode else True,
+        #do_sample=False if greedy_decode else True,
         temperature=temperature,
         max_length=max_len,
         num_return_sequences=1,
