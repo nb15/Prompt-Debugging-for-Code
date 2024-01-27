@@ -18,13 +18,13 @@ warnings.filterwarnings("ignore")
 # Argument parser setup
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--model", default='hf_wizardcoder_python_7B',help="LLM model name")
-parser.add_argument("-d", "--dataset", default='humaneval', help="Dataset", choices=['humaneval', 'mbpp'])
+parser.add_argument("-d", "--dataset", default='mbpp', help="Dataset", choices=['humaneval', 'mbpp'])
 parser.add_argument("-p", "--num_prompts", default=-1, help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt")
 parser.add_argument("-g", "--delta_grouping", default=None, help="Grouping for generating delta: permutations or combinations")
 parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate using evalplus or runtime")
 
-parser.add_argument("-exp", "--experiment", default='humaneval_2runs')
+parser.add_argument("-exp", "--experiment", default='mbpp_run1')
 
 parser.add_argument("-t", "--temperature", type=float, default=0.0)
 parser.add_argument("--max_len", type=int, default=2048)
