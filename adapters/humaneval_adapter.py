@@ -4,7 +4,7 @@ from typing import Iterable, Dict
 import gzip
 import json
 import random
-from manual_prompts_comp import humaneval_manual_prompt_dict
+from adapters.manual_prompts_comp import humaneval_manual_prompt_dict
 
 def read_problems(evalset_file: str) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
