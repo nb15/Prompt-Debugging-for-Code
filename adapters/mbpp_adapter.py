@@ -40,7 +40,13 @@ def extract_mbpp_test_list(entry_point, plus_input, expected_output):
     test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
     return test_list
 
-def generate_deltas(df, prompt_index, delta_method):
+def create_function_header(entry_point, canonical_solution):
+    for line in canonical_solution.split('\n'):
+        if entry_point in line:
+            return line
+    return f'def {entry_point():}'
+
+def generate_deltas(df, prompt_index, delta_method, return_modal_components):
     """
     Generate deltas based on the provided DataFrame, prompt index, and delta method.
 
@@ -49,16 +55,37 @@ def generate_deltas(df, prompt_index, delta_method):
     :param delta_method: Method for generating deltas ('permutations' or 'combinations').
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
-    df = df[['prompt', 'entry_point', 'plus_input', 'plus']].copy()
-    plus_input = df.iloc[prompt_index]['plus_input']
-    expected_output = df.iloc[prompt_index]['plus']
+    df = df[['prompt', 'entry_point', 'plus_input', 'plus', 'canonical_solution']].copy()
+    #plus_input = df.iloc[prompt_index]['plus_input']
+    #expected_output = df.iloc[prompt_index]['plus']
     prompt = str(df.iloc[prompt_index]['prompt'])
     entry_point = str(df.iloc[prompt_index]['entry_point'])
+    canonical_solution = str(df.iloc[prompt_index]['canonical_solution'])
 
     # Extracting and ensuring the data types
+    function_header = create_function_header(entry_point, canonical_solution)
     docstring = extract_mbpp_docstring(prompt, 'assert')
     examples = extract_mbpp_examples(prompt, 'assert')
-    test_list = extract_mbpp_test_list(entry_point, plus_input, expected_output)
+    #test_list = extract_mbpp_test_list(entry_point, plus_input, expected_output)
+    normalized_function_header = function_header.replace(entry_point, 'func')
+
+    if return_modal_components:
+        return [
+            prompt,
+            function_header,
+            docstring,
+            examples,
+            normalized_function_header
+        ]
+
+    return [f'{function_header}\n{prompt.strip()}',
+            f'{function_header}\n"""\n{examples}\n"""\n',
+            f'{docstring}\nCreate a function named {entry_point}\n{examples}\n',
+            f'{normalized_function_header}\n"""\n{docstring}\n"""\n',
+            f'\n{docstring}\n{examples}\n{function_header}\n',
+            f'{docstring}\n{function_header}\n"""\n{examples}\n"""\n',
+            f'{function_header}\n"""\n{examples}\n{docstring}\n"""\n',
+        ]
 
     # Define delta components as a dictionary
     delta_components = {

@@ -4,6 +4,7 @@ from typing import Iterable, Dict
 import gzip
 import json
 import random
+from manual_prompts_comp import humaneval_manual_prompt_dict
 
 def read_problems(evalset_file: str) -> Dict[str, Dict]:
     return {task["task_id"]: task for task in stream_jsonl(evalset_file)}
@@ -43,7 +44,7 @@ def extract_humaneval_docstring(code, function_header, stop_words):
     for stop_word in stop_words:
         if stop_word in text:
             text = text.split(stop_word)[0]
-    return text.strip().replace('"', '')
+    return text
 
 def extract_humaneval_test_list(entry_point, plus_input, expected_output):
     def prepare_input(inp):
@@ -51,7 +52,7 @@ def extract_humaneval_test_list(entry_point, plus_input, expected_output):
     test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
     return test_list
 
-def generate_deltas(df, prompt_index, delta_method):
+def generate_deltas(df, prompt_index, delta_method, return_modal_components):
     """
     Generate deltas based on the provided DataFrame, prompt index, and delta method.
 
@@ -61,25 +62,41 @@ def generate_deltas(df, prompt_index, delta_method):
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
     df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus']].copy()
-    plus_input = df.iloc[prompt_index]['plus_input']
-    expected_output = df.iloc[prompt_index]['plus']
+    #plus_input = df.iloc[prompt_index]['plus_input']
+    #expected_output = df.iloc[prompt_index]['plus']
 
     # Extracting and ensuring the data types
     prompt = str(df.iloc[prompt_index]['prompt'])
     entry_point = str(df.iloc[prompt_index]['entry_point'])
 
-    function_header = str(general_adapter.extract_function_header(prompt, entry_point))
-    docstring = extract_humaneval_docstring(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
-    examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
+    if prompt_index in humaneval_manual_prompt_dict.keys():
+        function_header, docstring, examples = humaneval_manual_prompt_dict[prompt_index]
+        docstring = docstring.strip().replace('"""', '').replace("'''", "")
+        examples = examples.strip().replace('"""', '').replace("'''", "")
+    else:
+        function_header = str(general_adapter.extract_function_header(prompt, entry_point))
+        docstring = extract_humaneval_docstring(prompt, function_header, ['For example', 'For Example', 'Example', 'example', '>>>', '>>', f'\n{entry_point}'])
+        #examples = extract_humaneval_examples(prompt, function_header, ['Example', 'example', 'For example', 'For Example', '>>>', '>>', f'\n{entry_point}'])
+        examples = prompt.split(docstring)[1].strip().replace('"""', '').replace("'''", "")
+        docstring = docstring.strip().replace('"""', '').replace("'''", "")
     #test_list = extract_humaneval_test_list(entry_point, plus_input, expected_output)
-    nomalized_function_header = function_header.replace(entry_point, 'func')
+    normalized_function_header = function_header.replace(entry_point, 'func')
+
+    if return_modal_components:
+        return [
+            prompt,
+            function_header,
+            docstring,
+            examples,
+        ]
 
     return [f'{prompt}',
-            f'{function_header}\n{examples}',
-            f'{docstring}\nCreate a function named {entry_point}\n{examples}',
-            f'{nomalized_function_header}\n{docstring}'
-            f'{docstring}\n{examples}\n{function_header}',
-            f'{docstring}\n{function_header}\n{examples}',
+            f'{function_header}\n"""\n{examples}\n"""\n',
+            f'{docstring}\nCreate a function named {entry_point}\n{examples}\n',
+            f'{normalized_function_header}\n"""\n{docstring}\n"""\n',
+            f'\n{docstring}\n{examples}\n{function_header}\n',
+            f'{docstring}\n{function_header}\n"""\n{examples}\n"""\n',
+            f'{function_header}\n"""\n{examples}\n{docstring}\n"""\n',
         ]
 
     # Define delta components as a dictionary

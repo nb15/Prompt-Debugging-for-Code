@@ -24,12 +24,14 @@ parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prom
 parser.add_argument("-g", "--delta_grouping", default=None, help="Grouping for generating delta: permutations or combinations")
 parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate using evalplus or runtime")
 
+parser.add_argument("-exp", "--experiment", default='humaneval_2runs')
 
 parser.add_argument("-t", "--temperature", type=float, default=0.0)
 parser.add_argument("--max_len", type=int, default=2048)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')
 parser.add_argument("--save_embds", default=False, type=bool)
+parser.add_argument("--save_modal_components", default=False, type=bool)
 
 args = parser.parse_args()
 
@@ -103,12 +105,13 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
                 pass
             else:
                 final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
-                                                    args.dataset, prompt_number, args.num_runs, args.delta_grouping, df, args.max_len)
+                                                    args.dataset, prompt_number, args.num_runs, 
+                                                    args.delta_grouping, df, args.max_len, args.save_modal_components)
     except:
         print("Error in Prompt: ", prompt_number)
         pass
 
-result_file = f'{args.dataset}_{args.model}_generated_code.jsonl'
+result_file = f'{args.experiment}_generated_code.jsonl'
 write_jsonl(result_file, final_results)
 
 
