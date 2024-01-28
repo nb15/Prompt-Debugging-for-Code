@@ -78,7 +78,8 @@ def run_test_cases_for_file(file_path, test_list):
         return ('Fail', f'Runtime Error - {e.__class__.__name__}')
 
 
-def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_index, num_runs, delta_method, df, max_len, save_modal_components):
+def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_index, 
+                        num_runs, delta_method, df, max_len, save_modal_components, model_name):
     
     all_results = []
 
@@ -92,7 +93,10 @@ def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_ind
     
     for run_index in range(num_runs):
         for i, delta in enumerate(deltas):
-            trucated_seq, raw_seq = models.generate_wizardcode_output(delta, model, tokenizer, generation_config, max_len)
+            if 'wizardcoder' in model_name:
+                trucated_seq, raw_seq = models.generate_wizardcode_output(delta, model, tokenizer, generation_config, max_len)
+            elif 'codellama' in model_name:
+                trucated_seq, raw_seq = models.generate_llama_output(delta, model, tokenizer, generation_config, max_len, model_name)
             all_results.append(dict(task_id = f'HumanEval/{prompt_index}', completion = trucated_seq, all_code = raw_seq))
 
     return all_results

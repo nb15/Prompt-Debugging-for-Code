@@ -20,6 +20,8 @@ model_dict = {
     'hf_starcoderbase_1B': 'bigcode/starcoderbase-1b',
     'hf_wizardcoder_15B': 'WizardLM/WizardCoder-15B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
+    'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
+    'hf_codellama_13B': 'codellama/CodeLlama-13b-hf'
 }
 
 def generate_openai_output(delta, llm):
@@ -68,6 +70,15 @@ Create a Python script for this problem:
 ### Response:"""
     return INSTRUCTION
 
+def generate_llama_prompt(input, model_name):
+    if 'instruct' in model_name:
+        pass
+    elif 'code' in model_name:
+        return input
+    else:
+        pass
+    return input
+
 
 def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_8bit=True):
     model_name = model_dict[llm]
@@ -87,8 +98,8 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
             #load_in_8bit = load_8bit,
             #quantization_config=bnb_config,
             trust_remote_code=True,
-            #torch_dtype = torch.float16 if load_8bit else "auto",
-            torch_dtype = "auto",
+            torch_dtype = torch.float16,
+            #torch_dtype = "auto",
             device_map = "auto"
         )
     else:
@@ -108,6 +119,7 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
     generation_config = GenerationConfig(
         pad_token_id=tokenizer.pad_token_id,
         #do_sample=False if greedy_decode else True,
+        num_beams=1,
         temperature=temperature,
         max_length=max_len,
         num_return_sequences=1,
@@ -127,7 +139,7 @@ def generate_wizardcode_output(delta, model, tokenizer, generation_config, max_l
     prompt = [generate_wizardcoder_prompt(prompt)]
     
     encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
-    temp = model(**encoding, output_hidden_states=True)
+    #temp = model(**encoding, output_hidden_states=True)
     model_out = model.generate(
         **encoding,
         generation_config = generation_config
@@ -139,6 +151,30 @@ def generate_wizardcode_output(delta, model, tokenizer, generation_config, max_l
     raw_seq = decoded_seq.replace('\t', '    ')
 
     return trucated_seq, raw_seq
+
+
+def generate_llama_output(delta, model, tokenizer, generation_config, max_len, model_name):
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    prompt = delta.replace('    ', '\t')
+    prompt = [generate_llama_prompt(prompt, model_name)]
+    
+    encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
+
+    #temp = model(**encoding, output_hidden_states=True)
+    model_out = model.generate(
+        **encoding,
+        generation_config = generation_config
+    )
+
+    decoded_seq = tokenizer.batch_decode(model_out, skip_special_tokens = True)[0]
+    trucated_seq = decoded_seq[len(delta):]
+    trucated_seq = trucated_seq.replace('\t', '    ')
+    raw_seq = decoded_seq.replace('\t', '    ')
+
+    return trucated_seq, raw_seq
+
 
 def generate_huggingface_output(delta, llm):
     tokenizer = AutoTokenizer.from_pretrained(llm)

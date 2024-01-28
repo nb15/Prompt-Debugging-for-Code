@@ -17,16 +17,16 @@ warnings.filterwarnings("ignore")
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--model", default='hf_wizardcoder_python_7B',help="LLM model name")
-parser.add_argument("-d", "--dataset", default='mbpp', help="Dataset", choices=['humaneval', 'mbpp'])
+parser.add_argument("-m", "--model", default='hf_codellama_13B',help="LLM model name")
+parser.add_argument("-d", "--dataset", default='humaneval', help="Dataset", choices=['humaneval', 'mbpp'])
 parser.add_argument("-p", "--num_prompts", default=-1, help="Number of prompts to test or list of prompt numbers")
 parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prompt")
 parser.add_argument("-g", "--delta_grouping", default=None, help="Grouping for generating delta: permutations or combinations")
 parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate using evalplus or runtime")
 
-parser.add_argument("-exp", "--experiment", default='mbpp_run1')
+parser.add_argument("-exp", "--experiment", default='mbpp_codellama_13B')
 
-parser.add_argument("-t", "--temperature", type=float, default=0.0)
+parser.add_argument("-t", "--temperature", type=float, default=0.1)
 parser.add_argument("--max_len", type=int, default=2048)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')
@@ -106,9 +106,10 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
             else:
                 final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
                                                     args.dataset, prompt_number, args.num_runs, 
-                                                    args.delta_grouping, df, args.max_len, args.save_modal_components)
+                                                    args.delta_grouping, df, args.max_len, args.save_modal_components, args.model)
     except:
         print("Error in Prompt: ", prompt_number)
+        write_jsonl(f'{args.experiment}_temp{prompt_number}.jsonl', final_results)
         pass
 
 result_file = f'{args.experiment}_generated_code.jsonl'
