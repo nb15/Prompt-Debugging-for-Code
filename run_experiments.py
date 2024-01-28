@@ -7,7 +7,7 @@ import os
 import shutil
 import json
 from tqdm import tqdm
-from models import get_hf_model
+from models import get_hf_model, get_hf_pipeline
 from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash, get_mbpp_plus, get_mbpp_plus_hash, write_jsonl
 from evalplus.evaluate import get_groundtruth
 from evalplus.eval._special_oracle import MBPP_OUTPUT_NOT_NONE_TASKS
@@ -24,10 +24,10 @@ parser.add_argument("-n", "--num_runs", default=1, help="Number of runs for prom
 parser.add_argument("-g", "--delta_grouping", default=None, help="Grouping for generating delta: permutations or combinations")
 parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate using evalplus or runtime")
 
-parser.add_argument("-exp", "--experiment", default='mbpp_codellama_13B')
+parser.add_argument("-exp", "--experiment", default='humaneval_codellama_13B')
 
-parser.add_argument("-t", "--temperature", type=float, default=0.1)
-parser.add_argument("--max_len", type=int, default=2048)
+parser.add_argument("-t", "--temperature", type=float, default=0.01)
+parser.add_argument("--max_len", type=int, default=1024)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')
 parser.add_argument("--save_embds", default=False, type=bool)
@@ -86,7 +86,7 @@ else:
 
 
 if 'hf' in args.model:
-    model, tokenizer, generation_config = get_hf_model(args.model,
+    model, tokenizer, generation_config = get_hf_pipeline(args.model,
                                     args.temperature,
                                     args.max_len,
                                     args.greedy_decode,

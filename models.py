@@ -2,6 +2,7 @@
 #import google.generativeai as genai
 #import google_api_key
 #from llama_cpp import Llama
+import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig, BitsAndBytesConfig
 import torch, os
 
@@ -18,10 +19,10 @@ model_dict = {
     'CodeLlama_13B_Python': 'codellama-13b-python-ggml-model-f16.bin',
     'hf_incoder_1B': "facebook/incoder-1B",
     'hf_starcoderbase_1B': 'bigcode/starcoderbase-1b',
-    'hf_wizardcoder_15B': 'WizardLM/WizardCoder-15B-V1.0',
+    'hf_wizardcoder_15B': 'WizardCoder-15B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
-    'hf_codellama_13B': 'codellama/CodeLlama-13b-hf'
+    'hf_codellama_13B': 'CodeLlama-13b-hf'
 }
 
 def generate_openai_output(delta, llm):
@@ -108,7 +109,8 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
             device_map={"": device},
             torch_dtype=torch.bfloat16,
         )        
-    model.config.pad_token_id = tokenizer.pad_token_id
+    #model.config.pad_token_id = tokenizer.pad_token_id
+    model.config.pad_token_id = tokenizer.eos_token_id
     print("Loaded Model")
     if not load_8bit:
         model.half()
@@ -119,16 +121,41 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
     generation_config = GenerationConfig(
         pad_token_id=tokenizer.pad_token_id,
         #do_sample=False if greedy_decode else True,
-        num_beams=1,
-        temperature=temperature,
+        do_sample=True,
+        #num_beams=1,
+        #temperature=temperature,
         max_length=max_len,
         num_return_sequences=1,
         eos_token_id=tokenizer.eos_token_id,
-        top_p=0.95
+        #top_p=0.95
     )
 
     return model, tokenizer, generation_config
 
+
+def get_hf_pipeline(llm, temperature, max_len, greedy_decode, decoding_style, load_8bit=True):
+    model_name = model_dict[llm]
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")    
+    pipeline = transformers.pipeline(
+                "text-generation",
+                model=model_name,
+                torch_dtype=torch.float16,
+                device_map="auto",
+            )
+    pipeline.tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    configs = {'do_sample':True,
+            'num_return_sequences':1,
+            'eos_token_id':tokenizer.eos_token_id,
+            'pad_token_id':tokenizer.eos_token_id,
+            'max_length':max_len,
+            'num_beams':1,
+            #'temperature':temperature,
+            #'top_p':0.95
+            }
+
+    return pipeline, tokenizer, configs
 
 
 def generate_wizardcode_output(delta, model, tokenizer, generation_config, max_len):
@@ -160,18 +187,28 @@ def generate_llama_output(delta, model, tokenizer, generation_config, max_len, m
     prompt = delta.replace('    ', '\t')
     prompt = [generate_llama_prompt(prompt, model_name)]
     
-    encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
-
-    #temp = model(**encoding, output_hidden_states=True)
-    model_out = model.generate(
-        **encoding,
-        generation_config = generation_config
+    decoded_seq = model(
+        delta,
+        **generation_config
     )
+    decoded_seq = decoded_seq[0]['generated_text']
 
-    decoded_seq = tokenizer.batch_decode(model_out, skip_special_tokens = True)[0]
     trucated_seq = decoded_seq[len(delta):]
     trucated_seq = trucated_seq.replace('\t', '    ')
     raw_seq = decoded_seq.replace('\t', '    ')
+
+    # encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
+
+    # #temp = model(**encoding, output_hidden_states=True)
+    # model_out = model.generate(
+    #     **encoding,
+    #     generation_config = generation_config
+    # )
+
+    # decoded_seq = tokenizer.batch_decode(model_out, skip_special_tokens = True)[0]
+    # trucated_seq = decoded_seq[len(delta):]
+    # trucated_seq = trucated_seq.replace('\t', '    ')
+    # raw_seq = decoded_seq.replace('\t', '    ')
 
     return trucated_seq, raw_seq
 
