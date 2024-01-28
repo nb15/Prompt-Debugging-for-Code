@@ -22,7 +22,8 @@ model_dict = {
     'hf_wizardcoder_15B': 'WizardCoder-15B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
-    'hf_codellama_13B': 'codellama/CodeLlama-13b-hf'
+    'hf_codellama_13B': 'codellama/CodeLlama-13b-hf',
+    'hf_llama2_13B': 'meta-llama/Llama-2-13b-hf',
 }
 
 def generate_openai_output(delta, llm):
@@ -224,7 +225,8 @@ def get_hf_model_embedding(delta, model, tokenizer):
     
     encoding = tokenizer(prompt, return_tensors="pt").to(device)
     temp = model(**encoding, output_hidden_states=True)
-    return torch.cat(temp.hidden_states)
+    hidden_states = torch.cat(temp.hidden_states).numpy().cpu()
+    return hidden_states
 
 
 def generate_huggingface_output(delta, llm):
