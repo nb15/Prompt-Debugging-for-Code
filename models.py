@@ -22,7 +22,7 @@ model_dict = {
     'hf_wizardcoder_15B': 'WizardCoder-15B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
     'hf_wizardcoder_python_7B': 'WizardLM/WizardCoder-Python-7B-V1.0',
-    'hf_codellama_13B': 'CodeLlama-13b-hf'
+    'hf_codellama_13B': 'codellama/CodeLlama-13b-hf'
 }
 
 def generate_openai_output(delta, llm):
