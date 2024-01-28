@@ -6,6 +6,7 @@ import argparse
 import os
 import shutil
 import json
+import pickle
 from tqdm import tqdm
 from models import get_hf_model, get_hf_pipeline
 from evalplus.data import get_human_eval_plus, get_human_eval_plus_hash, get_mbpp_plus, get_mbpp_plus_hash, write_jsonl
@@ -27,10 +28,10 @@ parser.add_argument("-e", "--evaluation", default='evalplus', help="Evaluate usi
 parser.add_argument("-exp", "--experiment", default='humaneval_codellama_13B')
 
 parser.add_argument("-t", "--temperature", type=float, default=0.01)
-parser.add_argument("--max_len", type=int, default=1024)
+parser.add_argument("--max_len", type=int, default=2048)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')
-parser.add_argument("--save_embds", default=False, type=bool)
+parser.add_argument("--save_embds", default=True, type=bool)
 parser.add_argument("--save_modal_components", default=False, type=bool)
 
 args = parser.parse_args()
@@ -86,15 +87,23 @@ else:
 
 
 if 'hf' in args.model:
-    model, tokenizer, generation_config = get_hf_pipeline(args.model,
-                                    args.temperature,
-                                    args.max_len,
-                                    args.greedy_decode,
-                                    args.decoding_style)
+    if 'llama' in args.model and not args.save_embds:
+        model, tokenizer, generation_config = get_hf_pipeline(args.model,
+                                        args.temperature,
+                                        args.max_len,
+                                        args.greedy_decode,
+                                        args.decoding_style)
+    else:
+        model, tokenizer, generation_config = get_hf_model(args.model,
+                                        args.temperature,
+                                        args.max_len,
+                                        args.greedy_decode,
+                                        args.decoding_style)        
 
 # Call the function from llm.py with the necessary arguments
 print("Running llm tests...")
 final_results = []
+embeds = {}
 
 for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
     try:
@@ -102,7 +111,7 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
             llm.run_llm_tests(args.model, args.dataset, prompt_number, args.num_runs, args.delta_grouping, df)
         else:
             if args.save_embds:
-                pass
+                embeds['prompt_number'] = llm.gen_hf_model_embeds(model, tokenizer, args.dataset, prompt_number,args.delta_grouping, df)
             else:
                 final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
                                                     args.dataset, prompt_number, args.num_runs, 
@@ -112,8 +121,11 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
         write_jsonl(f'{args.experiment}_temp{prompt_number}.jsonl', final_results)
         pass
 
-result_file = f'{args.experiment}_generated_code.jsonl'
-write_jsonl(result_file, final_results)
+if args.save_embds:
+    pickle.dump(embeds, open(f'{args.experiment}_embeds', 'wb'))
+else:
+    result_file = f'{args.experiment}_generated_code.jsonl'
+    write_jsonl(result_file, final_results)
 
 
 # run analysis

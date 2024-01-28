@@ -96,7 +96,7 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
     if torch.cuda.is_available():
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            #load_in_8bit = load_8bit,
+            load_in_8bit = load_8bit,
             #quantization_config=bnb_config,
             trust_remote_code=True,
             torch_dtype = torch.float16,
@@ -108,9 +108,12 @@ def get_hf_model(llm, temperature, max_len, greedy_decode, decoding_style, load_
             model_name,
             device_map={"": device},
             torch_dtype=torch.bfloat16,
-        )        
-    #model.config.pad_token_id = tokenizer.pad_token_id
-    model.config.pad_token_id = tokenizer.eos_token_id
+        )    
+    if 'wizard' in model_name:
+        model.config.pad_token_id = tokenizer.pad_token_id
+    elif 'llama' in model_name:
+        model.config.pad_token_id = tokenizer.eos_token_id
+    
     print("Loaded Model")
     if not load_8bit:
         model.half()
@@ -211,6 +214,17 @@ def generate_llama_output(delta, model, tokenizer, generation_config, max_len, m
     # raw_seq = decoded_seq.replace('\t', '    ')
 
     return trucated_seq, raw_seq
+
+
+def get_hf_model_embedding(delta, model, tokenizer):
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    prompt = [delta]
+    
+    encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
+    temp = model(**encoding, output_hidden_states=True)
+    return torch.cat(temp.hidden_states)
 
 
 def generate_huggingface_output(delta, llm):

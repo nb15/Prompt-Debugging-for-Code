@@ -75,7 +75,7 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components):
             function_header,
             docstring,
             examples,
-            normalized_function_header
+            #normalized_function_header
         ]
 
     return [f'{function_header}\n{prompt.strip()}',

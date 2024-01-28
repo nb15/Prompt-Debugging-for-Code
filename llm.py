@@ -101,6 +101,24 @@ def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_ind
 
     return all_results
 
+
+def gen_hf_model_embeds(model, tokenizer, dataset, prompt_index, delta_method, df):
+    
+    all_results = []
+
+    if dataset == 'mbpp':
+        deltas= mbpp_adapter.generate_deltas(df, prompt_index, delta_method, True)
+    elif dataset == 'humaneval':
+        deltas = humaneval_adapter.generate_deltas(df, prompt_index, delta_method, True)    
+    
+    
+    for i, delta in enumerate(deltas):
+        delta_embedding = models.get_hf_model_embedding(delta, model, tokenizer)
+        all_results.append(delta_embedding)
+
+    return all_results
+
+
 def run_llm_tests(model, dataset, prompt_index, num_runs, delta_method, df):
     """
     Run the Language Learning Model (LLM) tests.
