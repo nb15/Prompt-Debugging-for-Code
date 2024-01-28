@@ -222,7 +222,7 @@ def get_hf_model_embedding(delta, model, tokenizer):
     
     prompt = [delta]
     
-    encoding = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_len).to(device)
+    encoding = tokenizer(prompt, return_tensors="pt").to(device)
     temp = model(**encoding, output_hidden_states=True)
     return torch.cat(temp.hidden_states)
 
