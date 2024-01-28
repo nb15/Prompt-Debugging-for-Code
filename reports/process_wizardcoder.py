@@ -146,7 +146,7 @@ if args.num_deltas == 7:
         elif entry_point in code['completion']:
             #print("**Memorization**")
             memorization +=1
-print(f'Definite Memorizations: {memorization}')
+print(f'{memorization}')
 
 for file, code in all_tasks.items():        
     #print("save to {}".format(file))
