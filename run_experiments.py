@@ -106,20 +106,20 @@ final_results = []
 embeds = {}
 
 for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
-    try:
-        if args.evaluation == 'runtime':
-            llm.run_llm_tests(args.model, args.dataset, prompt_number, args.num_runs, args.delta_grouping, df)
+    #try:
+    if args.evaluation == 'runtime':
+        llm.run_llm_tests(args.model, args.dataset, prompt_number, args.num_runs, args.delta_grouping, df)
+    else:
+        if args.save_embds:
+            embeds['prompt_number'] = llm.gen_hf_model_embeds(model, tokenizer, args.dataset, prompt_number,args.delta_grouping, df)
         else:
-            if args.save_embds:
-                embeds['prompt_number'] = llm.gen_hf_model_embeds(model, tokenizer, args.dataset, prompt_number,args.delta_grouping, df)
-            else:
-                final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
-                                                    args.dataset, prompt_number, args.num_runs, 
-                                                    args.delta_grouping, df, args.max_len, args.save_modal_components, args.model)
-    except:
-        print("Error in Prompt: ", prompt_number)
-        write_jsonl(f'{args.experiment}_temp{prompt_number}.jsonl', final_results)
-        pass
+            final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
+                                                args.dataset, prompt_number, args.num_runs, 
+                                                args.delta_grouping, df, args.max_len, args.save_modal_components, args.model)
+    # except:
+    #     print("Error in Prompt: ", prompt_number)
+    #     write_jsonl(f'{args.experiment}_temp{prompt_number}.jsonl', final_results)
+    #     pass
 
 if args.save_embds:
     pickle.dump(embeds, open(f'{args.experiment}_embeds', 'wb'))
