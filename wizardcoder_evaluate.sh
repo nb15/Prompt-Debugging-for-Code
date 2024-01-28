@@ -19,11 +19,11 @@ do
             EVAL=$(python3 evaluate_deltas.py --dataset $DATASET --samples generated_code/deltas/${DATA}_${MODEL}_run1_Delta_${i}.jsonl)
             RESULT="$RESULT\n\n$DATA $MODEL Delta $i\nMemorization:$memorization\n$EVAL"
         done
-        # python3 reports/process_wizardcoder.py --dataset humaneval --model wizard_7B --run-id 2
+        python3 reports/process_wizardcoder.py --dataset humaneval --model wizard_7B --run-id 2
 
-        # for ((i = 0; i < $NUM_DELTAS; i++)); do
-        #     evalplus.evaluate --dataset $DATASET --samples /generated_code/deltas${DATA}_${MODEL}_run2_Delta_${i}.jsonl
-        # done
+        for ((i = 0; i < $NUM_DELTAS; i++)); do
+            evalplus.evaluate --dataset $DATASET --samples /generated_code/deltas${DATA}_${MODEL}_run2_Delta_${i}.jsonl
+        done
     done
 
 done
