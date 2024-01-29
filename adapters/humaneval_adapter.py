@@ -61,7 +61,7 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components):
     :param delta_method: Method for generating deltas ('permutations' or 'combinations').
     :return: A tuple containing the list of deltas and a dictionary with delta components info.
     """
-    df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus']].copy()
+    df = df[['prompt', 'entry_point', 'test', 'plus_input', 'plus', 'canonical_solution']].copy()
     #plus_input = df.iloc[prompt_index]['plus_input']
     #expected_output = df.iloc[prompt_index]['plus']
 
@@ -84,10 +84,11 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components):
 
     if return_modal_components:
         return [
-            prompt,
-            function_header,
-            docstring,
-            examples,
+            # prompt,
+            # function_header,
+            # docstring,
+            # examples,
+            str(df.iloc[prompt_index]['canonical_solution'])
         ]
 
     return [f'{prompt}',

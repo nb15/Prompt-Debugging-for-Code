@@ -71,11 +71,11 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components):
 
     if return_modal_components:
         return [
-            prompt,
-            function_header,
-            docstring,
-            examples,
-            #normalized_function_header
+            # prompt,
+            # function_header,
+            # docstring,
+            # examples,
+            str(df.iloc[prompt_index]['canonical_solution'])
         ]
 
     return [f'{function_header}\n{prompt.strip()}',
