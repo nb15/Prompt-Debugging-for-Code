@@ -102,7 +102,7 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components, mod
         ]
     
     if modal_transformations:
-        docstring_trans = docstring_trans.title()
+        docstring_trans = docstring.title()
         function_header_deadcode = f'{function_header}\n\tif False:\n\t\tx=[_ for i in range(42)]'
         entry_point_trans = transform_func_name(entry_point)
         function_header_name = function_header.replace(entry_point, entry_point_trans)
@@ -110,7 +110,7 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components, mod
 
         return [f'{function_header}\n"""\n{docstring_trans}\n{examples}\n"""\n',
                 f'{function_header_deadcode}\n"""\n{docstring}\n{examples}\n"""\n',
-                f'{function_header_name}\n"""\n{docstring}\n{examples_trans}\n"""\n',
+                f'{function_header_name}\n"""\n{docstring.replace(entry_point, entry_point_trans)}\n{examples_trans}\n"""\n',
         ]
 
     return [f'{prompt}',

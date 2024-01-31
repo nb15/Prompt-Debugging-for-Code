@@ -99,7 +99,7 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components, mod
 
         return [f'{function_header}\n"""\n{docstring_trans}\n{examples}\n"""\n',
                 f'{function_header_deadcode}\n"""\n{docstring}\n{examples}\n"""\n',
-                f'{function_header_name}\n"""\n{docstring}\n{examples_trans}\n"""\n',
+                f'{function_header_name}\n"""\n{docstring.replace(entry_point, entry_point_trans)}\n{examples_trans}\n"""\n',
         ]
 
 
