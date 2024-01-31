@@ -52,7 +52,17 @@ def extract_humaneval_test_list(entry_point, plus_input, expected_output):
     test_list = [f'assert {entry_point}({prepare_input(i)}) == {str(j)}' for i,j in zip(plus_input, expected_output)]
     return test_list
 
-def generate_deltas(df, prompt_index, delta_method, return_modal_components):
+
+def transform_func_name(entry_point):
+    if '_' in entry_point:
+        func_elements = entry_point.split('_')
+        func_elements = [i.capitalize() for i in func_elements]
+        func_elements = ''.join(func_elements)
+        return func_elements
+    return entry_point.capitalize()
+
+
+def generate_deltas(df, prompt_index, delta_method, return_modal_components, modal_transformations):
     """
     Generate deltas based on the provided DataFrame, prompt index, and delta method.
 
@@ -89,6 +99,18 @@ def generate_deltas(df, prompt_index, delta_method, return_modal_components):
             # docstring,
             # examples,
             str(df.iloc[prompt_index]['canonical_solution'])
+        ]
+    
+    if modal_transformations:
+        docstring_trans = docstring_trans.title()
+        function_header_deadcode = f'{function_header}\n\tif False:\n\t\tx=[_ for i in range(42)]'
+        entry_point_trans = transform_func_name(entry_point)
+        function_header_name = function_header.replace(entry_point, entry_point_trans)
+        examples_trans = examples.replace(entry_point, entry_point_trans)
+
+        return [f'{function_header}\n"""\n{docstring_trans}\n{examples}\n"""\n',
+                f'{function_header_deadcode}\n"""\n{docstring}\n{examples}\n"""\n',
+                f'{function_header_name}\n"""\n{docstring}\n{examples_trans}\n"""\n',
         ]
 
     return [f'{prompt}',

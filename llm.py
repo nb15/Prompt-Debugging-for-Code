@@ -79,14 +79,14 @@ def run_test_cases_for_file(file_path, test_list):
 
 
 def gen_hf_model_output(model, tokenizer, generation_config, dataset, prompt_index, 
-                        num_runs, delta_method, df, max_len, save_modal_components, model_name):
+                        num_runs, delta_method, df, max_len, save_modal_components, model_name, modal_transformations):
     
     all_results = []
 
     if dataset == 'mbpp':
-        deltas= mbpp_adapter.generate_deltas(df, prompt_index, delta_method, save_modal_components)
+        deltas= mbpp_adapter.generate_deltas(df, prompt_index, delta_method, save_modal_components, modal_transformations)
     elif dataset == 'humaneval':
-        deltas = humaneval_adapter.generate_deltas(df, prompt_index, delta_method, save_modal_components)    
+        deltas = humaneval_adapter.generate_deltas(df, prompt_index, delta_method, save_modal_components, modal_transformations)    
     
     if save_modal_components:
         return [{f'delta_{i}':j for i,j in enumerate(deltas)}]

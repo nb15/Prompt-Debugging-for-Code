@@ -31,8 +31,10 @@ parser.add_argument("-t", "--temperature", type=float, default=0.01)
 parser.add_argument("--max_len", type=int, default=2048)
 parser.add_argument("--greedy_decode", type=bool, default=True)
 parser.add_argument("--decoding_style", type=str, default='sampling')
+
 parser.add_argument("--save_embds", default=True, type=bool)
 parser.add_argument("--save_modal_components", default=False, type=bool)
+parser.add_argument("--modal_transformations", default=True, type=bool)
 
 args = parser.parse_args()
 
@@ -115,7 +117,8 @@ for prompt_number in tqdm(prompt_numbers, desc="Prompts completed"):
             else:
                 final_results+=llm.gen_hf_model_output(model, tokenizer, generation_config,
                                                     args.dataset, prompt_number, args.num_runs, 
-                                                    args.delta_grouping, df, args.max_len, args.save_modal_components, args.model)
+                                                    args.delta_grouping, df, args.max_len, args.save_modal_components, 
+                                                    args.model, args.modal_transformations)
     except:
         print("Error in Prompt: ", prompt_number)
         #assert False
