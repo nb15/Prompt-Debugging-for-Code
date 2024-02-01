@@ -1,2 +1,8 @@
 *.pyc
 *.ipynb
+*.txt
+*.json
+WizardCoder-15B-V1.0/
+CodeLlama-13b-hf/
+generated_code/deltas/
+robustness/
